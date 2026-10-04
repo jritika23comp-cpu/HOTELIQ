@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOTELIQ - AI Hotel & Vacation Rental Intelligence</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                            accent: '#6366f1',
+                            teal: '#14b8a6',
+                            emerald: '#10b981',
+                        },
+                        darkbg: '#0b0f19',
+                        darkcard: '#111827',
+                        darkborder: '#1f2937'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .light .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .badge-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .badge-observed { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-calculated { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-estimated { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-predicted { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-ai { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+        .badge-demo { background: rgba(107, 114, 128, 0.15); color: #9ca3af; border: 1px solid rgba(107, 114, 128, 0.3); }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 font-sans antialiased min-h-screen flex flex-col transition-colors duration-200">
+
+    <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur px-4 py-2.5 flex items-center justify-between shadow-md">
+        <div class="flex items-center space-x-4">
+            <button id="sidebar-toggle" class="text-slate-400 hover:text-white p-1 rounded md:hidden">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+            <a href="#" onclick="switchView('dashboard.html')" class="flex items-center space-x-2.5 group">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-hotel text-lg"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">HOTELIQ</span>
+                    <span class="text-[10px] block text-cyan-400/80 -mt-1 font-mono tracking-widest">COMPETITOR AI</span>
+                </div>
+            </a>
+
+            <!-- Market Selector -->
+            <div class="hidden sm:flex items-center bg-slate-800/80 border border-slate-700/80 rounded-lg px-2.5 py-1 space-x-2 text-xs">
+                <i class="fa-solid fa-location-dot text-cyan-400"></i>
+                <span class="text-slate-400">Market:</span>
+                <select id="market-select" onchange="updateMarket(this.value)" class="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer">
+                    <option value="lonavala" class="bg-slate-900">Lonavala & Khandala Luxury</option>
+                    <option value="karjat" class="bg-slate-900">Karjat Villa Circuit</option>
+                    <option value="goa" class="bg-slate-900">North Goa Beachfront</option>
+                </select>
+            </div>
+
+            <!-- Property Filter -->
+            <div class="hidden md:flex items-center bg-slate-800/80 border border-slate-700/80 rounded-lg px-2.5 py-1 space-x-2 text-xs">
+                <i class="fa-solid fa-building text-indigo-400"></i>
+                <select id="property-select" class="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer">
+                    <option class="bg-slate-900">All Portfolio Properties (4)</option>
+                    <option class="bg-slate-900">Della Villa 4BHK Private Pool</option>
+                    <option class="bg-slate-900">Solitude Estate Lonavala</option>
+                    <option class="bg-slate-900">Mist Cliff Resort & Spa</option>
+                    <option class="bg-slate-900">Karjat Riverfront Retreat</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Right Tools -->
+        <div class="flex items-center space-x-3">
+            <!-- File Explorer / Standalone HTML Exporter Trigger -->
+            <button onclick="toggleCodeModal()" class="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2 transition shadow-sm">
+                <i class="fa-solid fa-folder-open text-cyan-400"></i>
+                <span class="hidden lg:inline">Standalone Page Exporter</span>
+                <span class="bg-cyan-500/20 text-cyan-300 text-[10px] px-1.5 py-0.5 rounded font-mono">16 HTML Files</span>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-700 flex items-center justify-center transition">
+                <i class="fa-solid fa-moon text-sm" id="theme-icon"></i>
+            </button>
+
+            <!-- Notification Bell -->
+            <button onclick="switchView('alerts.html')" class="relative w-8 h-8 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition">
+                <i class="fa-solid fa-bell text-sm"></i>
+                <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
+            </button>
+
+            <!-- User Menu -->
+            <div class="flex items-center space-x-2 pl-2 border-l border-slate-800">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="User" class="w-8 h-8 rounded-full border border-cyan-500/50 object-cover">
+                <div class="hidden xl:block text-left text-xs">
+                    <div class="font-semibold text-slate-200 leading-none">Rajesh Sharma</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">RevPAR Strategist</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP WRAPPER -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between transition-all duration-200 z-30 shrink-0">
+            <div class="p-3 overflow-y-auto space-y-6">
+
+                <!-- Breadcrumb indicator -->
+                <div class="px-3 py-1.5 bg-slate-800/40 rounded-md border border-slate-800/60 text-[11px] text-slate-400 flex items-center space-x-2">
+                    <i class="fa-solid fa-compass text-cyan-400"></i>
+                    <span>Active:</span>
+                    <span id="active-page-title" class="text-cyan-300 font-semibold truncate">Dashboard</span>
+                </div>
+
+                <!-- Section 1: Executive Workspace -->
+                <div>
+                    <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">Command & Analytics</div>
+                    <nav class="space-y-1">
+                        <a href="index.html" onclick="switchView('index.html'); return false;" data-page="index.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-right-to-bracket w-4 text-center"></i>
+                            <span>Login Screen</span>
+                        </a>
+                        <a href="dashboard.html" onclick="switchView('dashboard.html'); return false;" data-page="dashboard.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-chart-pie w-4 text-center"></i>
+                            <span>Executive Dashboard</span>
+                        </a>
+                        <a href="competitors.html" onclick="switchView('competitors.html'); return false;" data-page="competitors.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-shield-halved w-4 text-center"></i>
+                            <span>Competitor Database</span>
+                        </a>
+                        <a href="competitor-detail.html" onclick="switchView('competitor-detail.html'); return false;" data-page="competitor-detail.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-magnifying-glass-chart w-4 text-center"></i>
+                            <span>Property Profile</span>
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Section 2: Rate & Revenue Intelligence -->
+                <div>
+                    <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">Rate & Revenue Lab</div>
+                    <nav class="space-y-1">
+                        <a href="pricing.html" onclick="switchView('pricing.html'); return false;" data-page="pricing.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-tags w-4 text-center"></i>
+                            <span>Pricing Matrix Lab</span>
+                        </a>
+                        <a href="availability.html" onclick="switchView('availability.html'); return false;" data-page="availability.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-calendar-days w-4 text-center"></i>
+                            <span>Availability Grid</span>
+                        </a>
+                        <a href="booking-intelligence.html" onclick="switchView('booking-intelligence.html'); return false;" data-page="booking-intelligence.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-chart-line w-4 text-center"></i>
+                            <span>Booking & Demand Pace</span>
+                        </a>
+                        <a href="revenue.html" onclick="switchView('revenue.html'); return false;" data-page="revenue.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-indian-rupee-sign w-4 text-center"></i>
+                            <span>Financial Analytics (GBV)</span>
+                        </a>
+                        <a href="historical.html" onclick="switchView('historical.html'); return false;" data-page="historical.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-clock-rotate-left w-4 text-center"></i>
+                            <span>Historical Time Machine</span>
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Section 3: AI & System Operations -->
+                <div>
+                    <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">AI Engine & Operations</div>
+                    <nav class="space-y-1">
+                        <a href="ai-insights.html" onclick="switchView('ai-insights.html'); return false;" data-page="ai-insights.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-brain w-4 text-center text-indigo-400"></i>
+                            <span>AI Insights Command</span>
+                        </a>
+                        <a href="alerts.html" onclick="switchView('alerts.html'); return false;" data-page="alerts.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-bell-concierge w-4 text-center text-amber-400"></i>
+                            <span>Alert Control Center</span>
+                        </a>
+                        <a href="data-collection.html" onclick="switchView('data-collection.html'); return false;" data-page="data-collection.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-terminal w-4 text-center text-emerald-400"></i>
+                            <span>Web Scraper Terminal</span>
+                        </a>
+                        <a href="properties.html" onclick="switchView('properties.html'); return false;" data-page="properties.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-city w-4 text-center"></i>
+                            <span>Tracked Portfolio</span>
+                        </a>
+                        <a href="add-property.html" onclick="switchView('add-property.html'); return false;" data-page="add-property.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-circle-plus w-4 text-center text-cyan-400"></i>
+                            <span>Onboarding Wizard</span>
+                        </a>
+                        <a href="ml-models.html" onclick="switchView('ml-models.html'); return false;" data-page="ml-models.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-microchip w-4 text-center text-pink-400"></i>
+                            <span>ML Model Laboratory</span>
+                        </a>
+                        <a href="settings.html" onclick="switchView('settings.html'); return false;" data-page="settings.html" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition">
+                            <i class="fa-solid fa-sliders w-4 text-center"></i>
+                            <span>Settings & API Sync</span>
+                        </a>
+                    </nav>
+                </div>
+
+            </div>
+
+            <!-- Sidebar footer stats -->
+            <div class="p-3 border-t border-slate-800 bg-slate-950/60 text-xs text-slate-400">
+                <div class="flex items-center justify-between text-[11px] mb-1">
+                    <span>Scraper Sync:</span>
+                    <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-circle text-[8px] animate-pulse mr-1"></i> Live (2m ago)</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-cyan-500 h-full w-[88%]"></div>
+                </div>
+                <div class="text-[10px] text-slate-500 mt-1.5 flex justify-between">
+                    <span>1,420 Rates Crawled Today</span>
+                    <span>99.4% Valid</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto bg-slate-950 p-4 lg:p-6" id="main-content">
+            <!-- Dynamic page content injects here via JS -->
+        </main>
+    </div>
+
+    <div id="code-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+                        <i class="fa-solid fa-code text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-100 text-sm">HOTELIQ Multi-Page HTML Code Explorer</h3>
+                        <p class="text-xs text-slate-400">Select any of the 16 independent page templates to view, copy, or download standalone HTML code.</p>
+                    </div>
+                </div>
+                <button onclick="toggleCodeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Split -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- File List Left Side -->
+                <div class="w-64 bg-slate-950 border-r border-slate-800 p-3 overflow-y-auto space-y-1 text-xs">
+                    <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1">Available Standalone Pages</div>
+                    <div id="code-file-tree" class="space-y-0.5">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Code Viewer Right Side -->
+                <div class="flex-1 flex flex-col bg-slate-900">
+                    <!-- Toolbar -->
+                    <div class="px-4 py-2 bg-slate-950/60 border-b border-slate-800 flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-mono text-cyan-400 font-semibold" id="current-code-filename">index.html</span>
+                            <span class="text-slate-500">• Standalone Single-File Document</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="copyCode()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded flex items-center space-x-1.5 transition">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                                <span>Copy Code</span>
+                            </button>
+                            <button onclick="downloadCode()" class="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-medium flex items-center space-x-1.5 transition">
+                                <i class="fa-solid fa-download text-xs"></i>
+                                <span>Download .html</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Pre container -->
+                    <div class="flex-1 p-4 overflow-auto bg-slate-950/90">
+                        <pre class="font-mono text-xs text-slate-300 leading-relaxed whitespace-pre" id="code-editor-display">Select a file from the explorer to view standalone HTML code...</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let currentPage = 'dashboard.html';
+        let currentMarket = 'lonavala';
+        let isDarkMode = true;
+
+        // Market Data Constants
+        const MARKET_NAMES = {
+            'lonavala': 'Lonavala & Khandala Luxury Circuit',
+            'karjat': 'Karjat Private Villa Belt',
+            'goa': 'North Goa Beachfront & Villas'
+        };
+
+        // Initialize App on load
+        window.onload = function() {
+            // Check hash in URL or default to dashboard
+            const hash = window.location.hash.replace('#', '');
+            if (hash && pageTemplates[hash]) {
+                currentPage = hash;
+            }
+            switchView(currentPage);
+            initCodeExplorerTree();
+        };
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon').className = 'fa-solid fa-moon text-sm';
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('theme-icon').className = 'fa-solid fa-sun text-sm text-amber-400';
+            }
+        }
+
+        function updateMarket(val) {
+            currentMarket = val;
+            switchView(currentPage); // Refresh page with market context
+        }
+
+        function switchView(pageName) {
+            if (!pageTemplates[pageName]) pageName = 'dashboard.html';
+            currentPage = pageName;
+            window.location.hash = pageName;
+
+            // Highlight active sidebar menu
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const page = btn.getAttribute('data-page');
+                if (page === pageName) {
+                    btn.className = 'nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 transition';
+                } else {
+                    btn.className = 'nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 transition';
+                }
+            });
+
+            // Update Breadcrumb
+            const titleMap = {
+                'index.html': 'Login Screen',
+                'dashboard.html': 'Executive Command Center',
+                'competitors.html': 'Competitor Intelligence Database',
+                'competitor-detail.html': 'Property Intelligence Profile',
+                'pricing.html': 'Pricing Matrix Laboratory',
+                'availability.html': 'Availability & Occupancy Grid',
+                'booking-intelligence.html': 'Demand & Booking Pace',
+                'revenue.html': 'Financial Analytics & GBV',
+                'historical.html': 'Historical Time Machine',
+                'ai-insights.html': 'AI Revenue Insights Engine',
+                'alerts.html': 'Alert Control Center',
+                'data-collection.html': 'Web Scraper Operations Console',
+                'properties.html': 'Tracked Portfolio Management',
+                'add-property.html': '6-Step Onboarding Wizard',
+                'ml-models.html': 'Machine Learning Model Lab',
+                'settings.html': 'System & API Settings'
+            };
+            document.getElementById('active-page-title').innerText = titleMap[pageName] || 'Dashboard';
+
+            // Render Page Content
+            const container = document.getElementById('main-content');
+            container.innerHTML = pageTemplates[pageName]();
+
+            // Initialize Page Charts if needed
+            if (pageChartInits[pageName]) {
+                setTimeout(() => {
+                    pageChartInits[pageName]();
+                }, 50);
+            }
+        }
+
+        function toggleCodeModal() {
+            const modal = document.getElementById('code-modal');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                loadCodeFile('dashboard.html');
+            }
+        }
+
+        function initCodeExplorerTree() {
+            const tree = document.getElementById('code-file-tree');
+            tree.innerHTML = Object.keys(pageTemplates).map(filename => `
+                <button onclick="loadCodeFile('${filename}')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-slate-800 flex items-center justify-between text-slate-300 font-mono transition">
+                    <span class="truncate"><i class="fa-regular fa-file-code mr-1.5 text-cyan-400"></i>${filename}</span>
+                    <i class="fa-solid fa-chevron-right text-[10px] text-slate-600"></i>
+                </button>
+            `).join('');
+        }
+
+        let selectedExportFile = 'dashboard.html';
+
+        function loadCodeFile(filename) {
+            selectedExportFile = filename;
+            document.getElementById('current-code-filename').innerText = filename;
+            
+            // Build standalone full HTML page for export
+            const standaloneHTML = `<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOTELIQ - ${filename.replace('.html', '').toUpperCase()}</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>
+    <style>
+        body { background-color: #090d16; color: #f1f5f9; font-family: ui-sans-serif, system-ui; }
+        .badge-tag { font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+        .badge-observed { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-calculated { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-estimated { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-predicted { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+        .badge-ai { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+    </style>
+</head>
+<body class="p-6">
+    <!-- HOTELIQ Standalone View Component: ${filename} -->
+    ${pageTemplates[filename]()}
+</body>
+</html>`;
+
+            document.getElementById('code-editor-display').textContent = standaloneHTML;
+        }
+
+        function copyCode() {
+            const code = document.getElementById('code-editor-display').textContent;
+            navigator.clipboard.writeText(code);
+            alert('Code copied to clipboard!');
+        }
+
+        function downloadCode() {
+            const code = document.getElementById('code-editor-display').textContent;
+            const blob = new Blob([code], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = selectedExportFile;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // --- PAGE TEMPLATES ENGINE ---
+        const pageTemplates = {};
+        const pageChartInits = {};
+
+        // 1. LOGIN PAGE (index.html)
+        pageTemplates['index.html'] = function() {
+            return `
+            <div class="min-h-[80vh] flex items-center justify-center p-4">
+                <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+                    <div class="p-8 flex flex-col justify-between bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 border-b md:border-b-0 md:border-r border-slate-800">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-cyan-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30">
+                                    <i class="fa-solid fa-hotel text-xl"></i>
+                                </div>
+                                <span class="font-bold text-2xl tracking-tight bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">HOTELIQ</span>
+                            </div>
+                            <h2 class="text-2xl font-extrabold text-white mb-2">AI Competitor Intelligence & Revenue Analytics</h2>
+                            <p class="text-xs text-slate-400 leading-relaxed mb-6">Real-time market rate monitoring, demand forecasting, parity checking, and automated dynamic pricing for luxury resorts and villas in India.</p>
+                            
+                            <div class="space-y-3 text-xs">
+                                <div class="flex items-center space-x-3 text-slate-300">
+                                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                                    <span>Lonavala, Karjat & Goa Market Crawlers</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-slate-300">
+                                    <i class="fa-solid fa-circle-check text-cyan-400"></i>
+                                    <span>Parity Leakage Detection & Real-time Alerts</span>
+                                </div>
+                                <div class="flex items-center space-x-3 text-slate-300">
+                                    <i class="fa-solid fa-circle-check text-indigo-400"></i>
+                                    <span>XGBoost Occupancy & RevPAR Optimization</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-4 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500">
+                            <span>HOTELIQ v4.2 Enterprise</span>
+                            <span class="badge-tag badge-ai">[AI POWERED]</span>
+                        </div>
+                    </div>
+
+                    <div class="p-8 flex flex-col justify-center">
+                        <h3 class="text-lg font-bold text-white mb-1">Sign in to Executive Portal</h3>
+                        <p class="text-xs text-slate-400 mb-6">Enter your organizational credentials to access live market intelligence.</p>
+
+                        <form onsubmit="switchView('dashboard.html'); return false;" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Work Email</label>
+                                <input type="email" value="revenue.lead@dellavillas.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+                                <input type="password" value="••••••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs">
+                                <label class="flex items-center space-x-2 cursor-pointer text-slate-400">
+                                    <input type="checkbox" checked class="rounded bg-slate-950 border-slate-800 text-cyan-500">
+                                    <span>Remember station</span>
+                                </label>
+                                <a href="#" class="text-cyan-400 hover:underline">Forgot password?</a>
+                            </div>
+
+                            <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-lg shadow-lg shadow-cyan-500/25 transition">
+                                Launch Executive Command Center <i class="fa-solid fa-arrow-right ml-1"></i>
+                            </button>
+                        </form>
+
+                        <div class="mt-6 pt-4 border-t border-slate-800 text-center">
+                            <span class="text-xs text-slate-500">Quick Demo Access:</span>
+                            <div class="flex justify-center space-x-2 mt-2">
+                                <button onclick="switchView('dashboard.html')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded text-[11px] font-mono">Demo: Dashboard</button>
+                                <button onclick="switchView('pricing.html')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded text-[11px] font-mono">Demo: Pricing Lab</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 2. DASHBOARD (dashboard.html)
+        pageTemplates['dashboard.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <!-- Page Banner Header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">Executive Command Center</h1>
+                            <span class="badge-tag badge-observed">[OBSERVED DATA]</span>
+                            <span class="badge-tag badge-ai">[AI SYNC]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Real-time revenue metrics, competitor rate indexing, and anomaly detection for <span class="text-cyan-300 font-semibold">${MARKET_NAMES[currentMarket]}</span>.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="switchView('ai-insights.html')" class="bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-indigo-400"></i>
+                            <span>AI Recommendations (3)</span>
+                        </button>
+                        <button onclick="switchView('data-collection.html')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 flex items-center space-x-1.5">
+                            <i class="fa-solid fa-arrows-rotate text-emerald-400"></i>
+                            <span>Sync Crawlers</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Key Metrics Bar -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs text-slate-400 font-medium">Average Daily Rate (ADR)</span>
+                            <span class="badge-tag badge-calculated">[CALCULATED]</span>
+                        </div>
+                        <div class="text-2xl font-extrabold text-white mt-2">₹18,450</div>
+                        <div class="flex items-center text-xs text-emerald-400 mt-2 font-medium">
+                            <i class="fa-solid fa-arrow-trend-up mr-1"></i> +12.4% vs CompSet (₹16,400)
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs text-slate-400 font-medium">Market RevPAR</span>
+                            <span class="badge-tag badge-calculated">[CALCULATED]</span>
+                        </div>
+                        <div class="text-2xl font-extrabold text-white mt-2">₹14,200</div>
+                        <div class="flex items-center text-xs text-emerald-400 mt-2 font-medium">
+                            <i class="fa-solid fa-arrow-trend-up mr-1"></i> +8.1% vs Last Week
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs text-slate-400 font-medium">30-Day Projected Occupancy</span>
+                            <span class="badge-tag badge-predicted">[PREDICTED]</span>
+                        </div>
+                        <div class="text-2xl font-extrabold text-white mt-2">76.8%</div>
+                        <div class="flex items-center text-xs text-cyan-400 mt-2 font-medium">
+                            <i class="fa-solid fa-bullseye mr-1"></i> CompSet Avg: 64.2%
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs text-slate-400 font-medium">Price Parity Health Score</span>
+                            <span class="badge-tag badge-observed">[OBSERVED]</span>
+                        </div>
+                        <div class="text-2xl font-extrabold text-amber-400 mt-2">91.5%</div>
+                        <div class="flex items-center text-xs text-amber-400/90 mt-2 font-medium">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> 2 Undercut Alerts Active
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Charts Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Chart 1: 30-Day Rate Trend vs Competitors -->
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="font-bold text-slate-100 text-sm">30-Day Rate Progression vs Competitor Set</h3>
+                                    <p class="text-xs text-slate-400">Comparing Della Villa 4BHK with Machan, Rhythm, & Fariyas Resort</p>
+                                </div>
+                                <span class="badge-tag badge-observed">[OBSERVED RATES]</span>
+                            </div>
+                            <div class="h-64">
+                                <canvas id="dashboardRateChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Side Anomaly & Insights Widget -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="font-bold text-slate-100 text-sm flex items-center">
+                                    <i class="fa-solid fa-brain text-indigo-400 mr-2"></i> AI Anomaly Radar
+                                </h3>
+                                <span class="badge-tag badge-ai">[AI DETECTED]</span>
+                            </div>
+
+                            <div class="space-y-3">
+                                <div class="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs">
+                                    <div class="font-semibold text-amber-300 flex items-center justify-between">
+                                        <span>Monsoon Long Weekend Demand Spike</span>
+                                        <span class="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded">High Impact</span>
+                                    </div>
+                                    <p class="text-slate-300 text-[11px] mt-1">Competitors increased rates by +35% for Oct 18-20. Recommended adjustment: ₹22,000 → ₹28,500.</p>
+                                    <button onclick="switchView('pricing.html')" class="mt-2 text-amber-400 hover:underline font-semibold text-[11px]">Apply Rate Hike →</button>
+                                </div>
+
+                                <div class="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-xs">
+                                    <div class="font-semibold text-cyan-300 flex items-center justify-between">
+                                        <span>The Machan Sold Out Warning</span>
+                                        <span class="text-[10px] bg-cyan-500/20 px-1.5 py-0.5 rounded">Market Compression</span>
+                                    </div>
+                                    <p class="text-slate-300 text-[11px] mt-1">100% occupancy detected at The Machan for Oct 24-25. Capture residual unconstrained demand.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="switchView('ai-insights.html')" class="w-full mt-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition">
+                            View All Market Evidence Insights
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Competitor Snapshot Table Preview -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-100 text-sm">Competitor Set Overview (${MARKET_NAMES[currentMarket]})</h3>
+                            <p class="text-xs text-slate-400">Live rate parity, rating scores, and crawl freshness</p>
+                        </div>
+                        <button onclick="switchView('competitors.html')" class="text-xs text-cyan-400 hover:underline font-semibold">View Full Database →</button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider">
+                                <tr>
+                                    <th class="p-3">Property Name</th>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Weekend ADR</th>
+                                    <th class="p-3">Min Stay Rule</th>
+                                    <th class="p-3">Parity Status</th>
+                                    <th class="p-3">Last Scraped</th>
+                                    <th class="p-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-semibold text-white flex items-center space-x-2">
+                                        <i class="fa-solid fa-tree text-emerald-400"></i>
+                                        <span>The Machan Eco Resort</span>
+                                    </td>
+                                    <td class="p-3 text-slate-400">Treehouse / Luxury Villa</td>
+                                    <td class="p-3 font-mono font-bold text-slate-200">₹24,500 <span class="badge-tag badge-observed">[OBSERVED]</span></td>
+                                    <td class="p-3">2 Nights</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">In Parity</span></td>
+                                    <td class="p-3 text-slate-400">12 mins ago</td>
+                                    <td class="p-3 text-right">
+                                        <button onclick="switchView('competitor-detail.html')" class="text-cyan-400 hover:text-cyan-300 font-medium">Inspect</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-semibold text-white flex items-center space-x-2">
+                                        <i class="fa-solid fa-water-ladder text-cyan-400"></i>
+                                        <span>Rhythm Resort Lonavala</span>
+                                    </td>
+                                    <td class="p-3 text-slate-400">All-Suite Resort</td>
+                                    <td class="p-3 font-mono font-bold text-slate-200">₹16,800 <span class="badge-tag badge-observed">[OBSERVED]</span></td>
+                                    <td class="p-3">1 Night</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30">Undercut -4% (MMT)</span></td>
+                                    <td class="p-3 text-slate-400">8 mins ago</td>
+                                    <td class="p-3 text-right">
+                                        <button onclick="switchView('competitor-detail.html')" class="text-cyan-400 hover:text-cyan-300 font-medium">Inspect</button>
+                                    </td>
+                                </tr>
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 font-semibold text-white flex items-center space-x-2">
+                                        <i class="fa-solid fa-mountain text-indigo-400"></i>
+                                        <span>Upper Deck Resort</span>
+                                    </td>
+                                    <td class="p-3 text-slate-400">Hilltop Resort</td>
+                                    <td class="p-3 font-mono font-bold text-slate-200">₹14,200 <span class="badge-tag badge-observed">[OBSERVED]</span></td>
+                                    <td class="p-3">1 Night</td>
+                                    <td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">In Parity</span></td>
+                                    <td class="p-3 text-slate-400">22 mins ago</td>
+                                    <td class="p-3 text-right">
+                                        <button onclick="switchView('competitor-detail.html')" class="text-cyan-400 hover:text-cyan-300 font-medium">Inspect</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        pageChartInits['dashboard.html'] = function() {
+            const ctx = document.getElementById('dashboardRateChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Oct 1', 'Oct 5', 'Oct 10', 'Oct 15', 'Oct 20', 'Oct 25', 'Oct 30'],
+                    datasets: [
+                        { label: 'Your Property (Della Villa)', data: [18500, 18500, 19200, 22000, 28000, 19500, 24000], borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3 },
+                        { label: 'The Machan', data: [22000, 22500, 23000, 25000, 31000, 24000, 29000], borderColor: '#10b981', borderDash: [4, 4], tension: 0.3 },
+                        { label: 'Rhythm Resort', data: [15000, 15500, 16000, 18000, 21000, 16500, 19500], borderColor: '#f59e0b', borderDash: [2, 2], tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.3)' } },
+                        y: { ticks: { color: '#64748b', callback: v => '₹' + v.toLocaleString('en-IN') }, grid: { color: 'rgba(51, 65, 85, 0.3)' } }
+                    }
+                }
+            });
+        };
+
+        // 3. COMPETITORS DATABASE (competitors.html)
+        pageTemplates['competitors.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">Competitor Intelligence Database</h1>
+                            <span class="badge-tag badge-observed">[OBSERVED MARKET DATA]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Tracked property catalog for <span class="text-cyan-300 font-semibold">${MARKET_NAMES[currentMarket]}</span> across Booking.com, Airbnb, MakeMyTrip, & Agoda.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="switchView('add-property.html')" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                            <span>Add Competitor Property</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Controls -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center space-x-2 flex-1">
+                        <div class="relative flex-1 max-w-sm">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500"></i>
+                            <input type="text" placeholder="Search competitor name, amenity, area..." class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-slate-200 focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <select class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-300">
+                            <option>All Star Ratings</option>
+                            <option>5 Star Luxury</option>
+                            <option>4 Star Boutique</option>
+                            <option>Private Villa 4BHK+</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2 text-slate-400">
+                        <span>Showing 12 Active Competitors</span>
+                        <button class="p-1.5 bg-slate-800 rounded hover:text-white"><i class="fa-solid fa-download"></i> Export CSV</button>
+                    </div>
+                </div>
+
+                <!-- Full Database Table -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3.5">Property Details</th>
+                                    <th class="p-3.5">Location & Sub-market</th>
+                                    <th class="p-3.5">OTA Channels Scraped</th>
+                                    <th class="p-3.5">Weekday ADR</th>
+                                    <th class="p-3.5">Weekend ADR</th>
+                                    <th class="p-3.5">Review Rating</th>
+                                    <th class="p-3.5">Parity Alert</th>
+                                    <th class="p-3.5 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3.5">
+                                        <div class="font-bold text-white text-sm">The Machan Eco Resort</div>
+                                        <div class="text-[11px] text-slate-400">Luxury Treehouse & Private Pools</div>
+                                    </td>
+                                    <td class="p-3.5 text-slate-300">Atvan, Lonavala</td>
+                                    <td class="p-3.5">
+                                        <div class="flex space-x-1.5">
+                                            <span class="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded text-[10px]">Booking.com</span>
+                                            <span class="bg-red-600/20 text-red-400 px-1.5 py-0.5 rounded text-[10px]">MMT</span>
+                                            <span class="bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded text-[10px]">Agoda</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-3.5 font-mono text-slate-200">₹19,500 <span class="badge-tag badge-observed">[OBS]</span></td>
+                                    <td class="p-3.5 font-mono font-bold text-cyan-400">₹25,800 <span class="badge-tag badge-observed">[OBS]</span></td>
+                                    <td class="p-3.5"><span class="text-amber-400 font-bold"><i class="fa-solid fa-star text-[10px] mr-1"></i>4.8</span> (1,240 reviews)</td>
+                                    <td class="p-3.5"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">In Parity</span></td>
+                                    <td class="p-3.5 text-right">
+                                        <button onclick="switchView('competitor-detail.html')" class="px-2.5 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 rounded font-semibold">Inspect</button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3.5">
+                                        <div class="font-bold text-white text-sm">Rhythm Resort Lonavala</div>
+                                        <div class="text-[11px] text-slate-400">All-Suite Family Resort</div>
+                                    </td>
+                                    <td class="p-3.5 text-slate-300">Old Mumbai-Pune Hwy</td>
+                                    <td class="p-3.5">
+                                        <div class="flex space-x-1.5">
+                                            <span class="bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded text-[10px]">Booking.com</span>
+                                            <span class="bg-rose-600/20 text-rose-400 px-1.5 py-0.5 rounded text-[10px]">Airbnb</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-3.5 font-mono text-slate-200">₹12,400 <span class="badge-tag badge-observed">[OBS]</span></td>
+                                    <td class="p-3.5 font-mono font-bold text-cyan-400">₹17,200 <span class="badge-tag badge-observed">[OBS]</span></td>
+                                    <td class="p-3.5"><span class="text-amber-400 font-bold"><i class="fa-solid fa-star text-[10px] mr-1"></i>4.6</span> (890 reviews)</td>
+                                    <td class="p-3.5"><span class="px-2 py-0.5 rounded text-[10px] bg-red-500/15 text-red-400 border border-red-500/30">Leakage Detected</span></td>
+                                    <td class="p-3.5 text-right">
+                                        <button onclick="switchView('competitor-detail.html')" class="px-2.5 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 rounded font-semibold">Inspect</button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3.5">
+                                        <div class="font-bold text-white text-sm">Fariyas Resort Lonavala</div>
+                                        <td class="p-3.5 text-slate-300">Frichley Hill, Lonavala</td>
+                                    <td class="p-3.5">
+                                        <div class="flex space-x-1.5">
+                                            <span class="bg-red-600/20 text-red-400 px-1.5 py-0.5 rounded text-[10px]">MMT</span>
+                                            <span class="bg-amber-600/20 text-amber-400 px-1.5 py-0.5 rounded text-[10px]">Agoda</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-3.5 font-mono text-slate-200">₹14,800 <span class="badge-tag badge-observed">[OBS]</span></td>
+                                    <td class="p-3.5 font-mono font-bold text-cyan-400">₹21,000 <span class="badge-tag badge-observed">[OBS]</span></td>
+                                    <td class="p-3.5"><span class="text-amber-400 font-bold"><i class="fa-solid fa-star text-[10px] mr-1"></i>4.5</span> (2,100 reviews)</td>
+                                    <td class="p-3.5"><span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">In Parity</span></td>
+                                    <td class="p-3.5 text-right">
+                                        <button onclick="switchView('competitor-detail.html')" class="px-2.5 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 rounded font-semibold">Inspect</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 4. COMPETITOR DETAIL (competitor-detail.html)
+        pageTemplates['competitor-detail.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <!-- Property Profile Header -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="flex items-start space-x-4">
+                        <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=200&q=80" class="w-20 h-20 rounded-xl object-cover border border-slate-700">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h1 class="text-xl font-extrabold text-white">The Machan Eco Resort</h1>
+                                <span class="badge-tag badge-observed">[OBSERVED DATA]</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-cyan-400 mr-1"></i> Atvan, Lonavala Road • Luxury Eco Resort & Treehouses</p>
+                            <div class="flex items-center space-x-3 mt-3 text-xs">
+                                <span class="text-amber-400 font-bold"><i class="fa-solid fa-star mr-1"></i>4.8 / 5.0</span>
+                                <span class="text-slate-500">•</span>
+                                <span class="text-slate-300">28 Luxury Units</span>
+                                <span class="text-slate-500">•</span>
+                                <span class="text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Live Crawled 12m ago</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                        <button onclick="switchView('pricing.html')" class="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-code-compare text-xs"></i>
+                            <span>Compare in Rate Matrix</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Deep Dive Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left: Rate Strategy Analysis -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 class="font-bold text-slate-100 text-sm">Room Category Rate Breakdown</h3>
+                                    <p class="text-xs text-slate-400">Current live rates scraped across room classes</p>
+                                </div>
+                                <span class="badge-tag badge-calculated">[CALCULATED MEDIAN]</span>
+                            </div>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-slate-950 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs">
+                                    <div>
+                                        <div class="font-bold text-white">Canopy Machan (Treehouse Suite)</div>
+                                        <div class="text-[11px] text-slate-400">Includes Breakfast & High Tea</div>
+                                    </div>
+                                    <div class="text-right font-mono">
+                                        <div class="font-bold text-cyan-400">₹24,500 / night</div>
+                                        <div class="text-[10px] text-slate-500">OTA Base Rate</div>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 bg-slate-950 border border-slate-800/80 rounded-lg flex items-center justify-between text-xs">
+                                    <div>
+                                        <div class="font-bold text-white">Forest Machan 2BHK Luxury</div>
+                                        <div class="text-[11px] text-slate-400">Glass Floor • Private Deck</div>
+                                    </div>
+                                    <div class="text-right font-mono">
+                                        <div class="font-bold text-cyan-400">₹32,000 / night</div>
+                                        <div class="text-[10px] text-slate-500">OTA Base Rate</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Price Change Frequency Chart -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                            <h3 class="font-bold text-slate-100 text-sm mb-1">Rate Fluctuation Frequency (Last 14 Days)</h3>
+                            <p class="text-xs text-slate-400 mb-4">Number of dynamic price adjustments performed by property</p>
+                            <div class="h-48">
+                                <canvas id="competitorDetailChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Parity & Sentiment Radar -->
+                    <div class="space-y-6">
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                            <h3 class="font-bold text-slate-100 text-sm mb-3">OTA Channel Parity Monitor</h3>
+                            <div class="space-y-2.5 text-xs">
+                                <div class="flex items-center justify-between p-2 bg-slate-950 rounded">
+                                    <span class="text-slate-300">Booking.com</span>
+                                    <span class="font-mono text-emerald-400 font-bold">₹24,500</span>
+                                </div>
+                                <div class="flex items-center justify-between p-2 bg-slate-950 rounded">
+                                    <span class="text-slate-300">MakeMyTrip</span>
+                                    <span class="font-mono text-emerald-400 font-bold">₹24,500</span>
+                                </div>
+                                <div class="flex items-center justify-between p-2 bg-slate-950 rounded">
+                                    <span class="text-slate-300">Agoda</span>
+                                    <span class="font-mono text-amber-400 font-bold">₹23,900 (-2.4%)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-xs">
+                            <h3 class="font-bold text-slate-100 text-sm mb-2">Guest Review Sentiment Analysis</h3>
+                            <span class="badge-tag badge-ai mb-3 inline-block">[AI NLP ANALYSIS]</span>
+                            <div class="space-y-2 mt-2">
+                                <div>
+                                    <div class="flex justify-between text-slate-400 mb-1">
+                                        <span>Location & Scenery</span>
+                                        <span class="text-emerald-400">96% Positive</span>
+                                    </div>
+                                    <div class="w-full bg-slate-800 h-1.5 rounded-full"><div class="bg-emerald-500 h-1.5 rounded-full w-[96%]"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-slate-400 mb-1">
+                                        <span>Value for Money Rate</span>
+                                        <span class="text-amber-400">72% Positive</span>
+                                    </div>
+                                    <div class="w-full bg-slate-800 h-1.5 rounded-full"><div class="bg-amber-500 h-1.5 rounded-full w-[72%]"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        pageChartInits['competitor-detail.html'] = function() {
+            const ctx = document.getElementById('competitorDetailChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{ label: 'Price Re-adjustments', data: [3, 1, 4, 6, 9, 12, 5], backgroundColor: '#6366f1' }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#64748b' } },
+                        y: { ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        };
+
+        // 5. PRICING LABORATORY (pricing.html)
+        pageTemplates['pricing.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">Pricing Analysis Laboratory</h1>
+                            <span class="badge-tag badge-calculated">[30-DAY RATE MATRIX]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Side-by-side date pricing grid comparing Della Villa against key competitors in <span class="text-cyan-300 font-semibold">${MARKET_NAMES[currentMarket]}</span>.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-emerald-500/20">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Execute Auto-Dynamic Repricing</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Strategy Controls -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+                    <div class="flex items-center space-x-3 w-full md:w-auto">
+                        <span class="text-slate-400">Pricing Strategy Mode:</span>
+                        <select class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-cyan-400 font-bold">
+                            <option>Premium Target (Leader +10%)</option>
+                            <option>Parity Match Engine</option>
+                            <option>High Occupancy Fill Drive</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500/30 border border-emerald-500 inline-block"></span>
+                            <span>Optimal Rate</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded-full bg-amber-500/30 border border-amber-500 inline-block"></span>
+                            <span>Overpriced</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5 text-slate-300">
+                            <span class="w-3 h-3 rounded-full bg-red-500/30 border border-red-500 inline-block"></span>
+                            <span>Underpriced</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 30-Day Grid Table -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-center text-xs text-slate-300 border-collapse">
+                            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3 text-left min-w-[160px]">Date / Day</th>
+                                    <th class="p-3 bg-cyan-950/40 text-cyan-300">Your Target Rate <span class="badge-tag badge-calculated">[CALC]</span></th>
+                                    <th class="p-3">The Machan <span class="badge-tag badge-observed">[OBS]</span></th>
+                                    <th class="p-3">Rhythm Resort <span class="badge-tag badge-observed">[OBS]</span></th>
+                                    <th class="p-3">Fariyas Resort <span class="badge-tag badge-observed">[OBS]</span></th>
+                                    <th class="p-3">CompSet Avg</th>
+                                    <th class="p-3">AI Suggested <span class="badge-tag badge-ai">[AI]</span></th>
+                                    <th class="p-3 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 font-mono">
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 text-left font-sans font-semibold text-white">Oct 12 (Sat) <span class="text-[10px] text-amber-400 ml-1">[Peak Weekend]</span></td>
+                                    <td class="p-3 bg-cyan-950/20 font-bold text-cyan-300">₹22,500</td>
+                                    <td class="p-3 text-slate-200">₹26,000</td>
+                                    <td class="p-3 text-slate-200">₹18,500</td>
+                                    <td class="p-3 text-slate-200">₹22,000</td>
+                                    <td class="p-3 text-slate-400">₹22,166</td>
+                                    <td class="p-3 text-emerald-400 font-bold bg-emerald-500/10">₹24,800</td>
+                                    <td class="p-3 text-right font-sans">
+                                        <button class="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded">Update</button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 text-left font-sans font-semibold text-white">Oct 13 (Sun)</td>
+                                    <td class="p-3 bg-cyan-950/20 font-bold text-cyan-300">₹18,000</td>
+                                    <td class="p-3 text-slate-200">₹22,000</td>
+                                    <td class="p-3 text-slate-200">₹15,000</td>
+                                    <td class="p-3 text-slate-200">₹17,500</td>
+                                    <td class="p-3 text-slate-400">₹18,166</td>
+                                    <td class="p-3 text-cyan-400 font-bold">₹18,000</td>
+                                    <td class="p-3 text-right font-sans">
+                                        <button class="px-2 py-1 bg-slate-800 text-slate-400 rounded cursor-default">Matched</button>
+                                    </td>
+                                </tr>
+
+                                <tr class="hover:bg-slate-800/40">
+                                    <td class="p-3 text-left font-sans font-semibold text-white">Oct 14 (Mon)</td>
+                                    <td class="p-3 bg-cyan-950/20 font-bold text-cyan-300">₹15,000</td>
+                                    <td class="p-3 text-slate-200">₹19,000</td>
+                                    <td class="p-3 text-slate-200">₹12,000</td>
+                                    <td class="p-3 text-slate-200">₹14,000</td>
+                                    <td class="p-3 text-slate-400">₹15,000</td>
+                                    <td class="p-3 text-amber-400 font-bold bg-amber-500/10">₹13,500</td>
+                                    <td class="p-3 text-right font-sans">
+                                        <button class="px-2 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded">Discount</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 6. AVAILABILITY GRID (availability.html)
+        pageTemplates['availability.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">Availability & Minimum Stay Grid</h1>
+                            <span class="badge-tag badge-observed">[OBSERVED CALENDAR]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Real-time room status, sell-outs, and restriction rules across competitors.</p>
+                    </div>
+
+                    <div class="flex items-center space-x-2 text-xs">
+                        <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-emerald-500/30 border border-emerald-500 rounded"></span><span>Available</span></span>
+                        <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-red-500/40 border border-red-500 rounded"></span><span>Sold Out</span></span>
+                        <span class="flex items-center space-x-1"><span class="w-3 h-3 bg-amber-500/30 border border-amber-500 rounded"></span><span>2-Night Min</span></span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-x-auto">
+                    <table class="w-full text-center text-xs">
+                        <thead class="bg-slate-950 text-slate-400 text-[11px] border-b border-slate-800">
+                            <tr>
+                                <th class="p-3 text-left">Property Name</th>
+                                <th class="p-2">Fri Oct 11</th>
+                                <th class="p-2">Sat Oct 12</th>
+                                <th class="p-2">Sun Oct 13</th>
+                                <th class="p-2">Mon Oct 14</th>
+                                <th class="p-2">Tue Oct 15</th>
+                                <th class="p-2">Wed Oct 16</th>
+                                <th class="p-2">Thu Oct 17</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                            <tr>
+                                <td class="p-3 text-left font-bold text-white">Your Villa (Della)</td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-amber-500/20 text-amber-400 px-2 py-1 rounded block border border-amber-500/30">Min 2N</span></td>
+                                <td class="p-2"><span class="bg-red-500/30 text-red-300 px-2 py-1 rounded block border border-red-500/40 font-semibold">Sold Out</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 text-left font-semibold text-slate-300">The Machan</td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-red-500/30 text-red-300 px-2 py-1 rounded block border border-red-500/40 font-semibold">Sold Out</span></td>
+                                <td class="p-2"><span class="bg-red-500/30 text-red-300 px-2 py-1 rounded block border border-red-500/40 font-semibold">Sold Out</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                                <td class="p-2"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Avail</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        };
+
+        // 7. BOOKING INTELLIGENCE (booking-intelligence.html)
+        pageTemplates['booking-intelligence.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">Demand & Booking Pace Workspace</h1>
+                            <span class="badge-tag badge-estimated">[ESTIMATED PACE]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Lead time distribution, booking pickup curves, and weekend compression analysis.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <h3 class="font-bold text-slate-100 text-sm mb-4">Booking Lead Time Window</h3>
+                        <div class="h-64">
+                            <canvas id="bookingLeadChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <h3 class="font-bold text-slate-100 text-sm mb-4">Pickup Velocity (Bookings / Day)</h3>
+                        <div class="h-64">
+                            <canvas id="pickupVelocityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        pageChartInits['booking-intelligence.html'] = function() {
+            const ctx1 = document.getElementById('bookingLeadChart');
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['0-3 Days (Last Minute)', '4-7 Days', '8-14 Days', '15-30 Days', '30+ Days'],
+                        datasets: [{ data: [35, 25, 20, 12, 8], backgroundColor: ['#ef4444', '#f59e0b', '#0284c7', '#6366f1', '#10b981'] }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } } }
+                });
+            }
+
+            const ctx2 = document.getElementById('pickupVelocityChart');
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: ['30d out', '20d out', '10d out', '5d out', '2d out', '1d out'],
+                        datasets: [{ label: 'Bookings Received', data: [2, 5, 12, 28, 42, 60], backgroundColor: '#14b8a6' }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+            }
+        };
+
+        // 8. REVENUE ANALYTICS (revenue.html)
+        pageTemplates['revenue.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">Financial Analytics & GBV Center</h1>
+                            <span class="badge-tag badge-calculated">[CALCULATED FINANCIALS]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Gross Booking Value (GBV), channel commission leakage, and RevPAR index performance in <span class="text-cyan-300 font-semibold">₹ INR</span>.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-400">Total YTD GBV Revenue</span>
+                        <div class="text-2xl font-black text-emerald-400 mt-1">₹1.48 Cr</div>
+                        <span class="text-[10px] text-slate-500">+18.2% vs target</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-400">Net Revenue (After Commission)</span>
+                        <div class="text-2xl font-black text-cyan-400 mt-1">₹1.26 Cr</div>
+                        <span class="text-[10px] text-slate-500">14.8% OTA Commission Leakage</span>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                        <span class="text-xs text-slate-400">Revenue Generation Index (RGI)</span>
+                        <div class="text-2xl font-black text-indigo-400 mt-1">118.4</div>
+                        <span class="text-[10px] text-emerald-400">Outperforming CompSet by 18.4%</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <h3 class="font-bold text-slate-100 text-sm mb-4">Monthly GBV Breakdown vs Target (₹ Lakhs)</h3>
+                    <div class="h-64">
+                        <canvas id="revenueMonthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        pageChartInits['revenue.html'] = function() {
+            const ctx = document.getElementById('revenueMonthlyChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct (Est)'],
+                    datasets: [
+                        { label: 'Achieved GBV', data: [18.2, 22.4, 28.5, 31.0, 24.2, 29.8], backgroundColor: '#0284c7' },
+                        { label: 'Target GBV', data: [16.0, 20.0, 25.0, 28.0, 22.0, 26.0], backgroundColor: 'rgba(255,255,255,0.1)' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        };
+
+        // 9. HISTORICAL TIME MACHINE (historical.html)
+        pageTemplates['historical.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Time Machine / Historical Analysis</h1>
+                        <p class="text-xs text-slate-400 mt-1">Multi-year seasonal trend correlations for Monsoon, Diwali, and Year-End surges.</p>
+                    </div>
+                    <span class="badge-tag badge-observed">[2024 - 2026 ARCHIVE]</span>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                    <h3 class="font-bold text-slate-100 text-sm mb-4">3-Year Weekend ADR Evolution (Lonavala)</h3>
+                    <div class="h-64">
+                        <canvas id="historicalTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        pageChartInits['historical.html'] = function() {
+            const ctx = document.getElementById('historicalTrendChart');
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov', 'Dec'],
+                    datasets: [
+                        { label: '2024 Weekend ADR', data: [14000, 15000, 18000, 22000, 16000, 24000, 32000], borderColor: '#64748b' },
+                        { label: '2025 Weekend ADR', data: [16000, 17500, 21000, 25000, 19000, 28000, 38000], borderColor: '#0284c7' },
+                        { label: '2026 (Current)', data: [18000, 19500, 24000, 29000, 22000, 32000, 45000], borderColor: '#10b981' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        };
+
+        // 10. AI INSIGHTS (ai-insights.html)
+        pageTemplates['ai-insights.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="text-2xl font-bold text-white tracking-tight">AI Insights Command</h1>
+                            <span class="badge-tag badge-ai">[AI GENERATED RECOMMENDATIONS]</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Prescriptive rate optimization cards backed by market crawl evidence and confidence scoring.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-slate-900 border border-indigo-500/30 rounded-xl p-5 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">CONFIDENCE SCORE: 94%</div>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 text-xl">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-bold text-white text-base">Capitalize on Monsoon Compression (Oct 18-20)</h3>
+                                <p class="text-xs text-slate-300 mt-1 leading-relaxed">Competitor compression reached 88%. The Machan and Rhythm have restricted bookings to 2-night minimums. Increasing rate by +₹4,500/night is predicted to capture +₹1.8L incremental revenue without sacrificing occupancy.</p>
+                                
+                                <div class="mt-4 p-3 bg-slate-950 rounded-lg border border-slate-800 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                    <div><span class="text-slate-500 text-[10px] block">Current Rate</span><span class="font-bold text-slate-200">₹22,000</span></div>
+                                    <div><span class="text-slate-500 text-[10px] block">Recommended Rate</span><span class="font-bold text-emerald-400">₹26,500</span></div>
+                                    <div><span class="text-slate-500 text-[10px] block">Revenue Lift</span><span class="font-bold text-cyan-400">+₹1,80,000</span></div>
+                                    <div><span class="text-slate-500 text-[10px] block">Risk Impact</span><span class="font-bold text-slate-300">Very Low</span></div>
+                                </div>
+
+                                <div class="mt-4 flex items-center space-x-3">
+                                    <button class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-lg shadow-lg transition">Apply Optimization Now</button>
+                                    <button class="px-3 py-2 bg-slate-800 text-slate-400 text-xs rounded-lg hover:text-slate-200">Dismiss</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 11. ALERTS (alerts.html)
+        pageTemplates['alerts.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Alert Control Center</h1>
+                        <p class="text-xs text-slate-400 mt-1">Real-time alerts for rate undercutting, minimum stay shifts, and OTA parity breaks.</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="p-4 bg-slate-900 border border-red-500/40 rounded-xl flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-triangle-exclamation text-red-400 text-lg"></i>
+                            <div>
+                                <div class="font-bold text-white">Rate Parity Violation on Agoda (Rhythm Resort)</div>
+                                <div class="text-slate-400 mt-0.5">Agoda is discounting Rhythm Resort by -6% below direct website rate.</div>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 bg-red-500/20 text-red-300 rounded font-bold text-[10px]">CRITICAL</span>
+                    </div>
+
+                    <div class="p-4 bg-slate-900 border border-amber-500/40 rounded-xl flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-circle-exclamation text-amber-400 text-lg"></i>
+                            <div>
+                                <div class="font-bold text-white">Competitor Sold Out Trigger (The Machan)</div>
+                                <div class="text-slate-400 mt-0.5">Machan 2BHK Treehouses are 100% booked for Oct 25-27 weekend.</div>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded font-bold text-[10px]">MEDIUM</span>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 12. DATA COLLECTION (data-collection.html)
+        pageTemplates['data-collection.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Web Scraper Monitor Console</h1>
+                        <p class="text-xs text-slate-400 mt-1">Live crawling pipeline, proxy IP pool health, and OTA scraper logs.</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs text-emerald-400 h-80 overflow-y-auto space-y-1 shadow-inner">
+                    <p class="text-slate-500">[11:14:02 IST] [INFO] Scraping Engine initialized for region: Lonavala_Luxury...</p>
+                    <p>[11:14:05 IST] [SUCCESS] Scraped Booking.com | Property: The Machan | Rates: 3 Categories | Status 200 OK</p>
+                    <p>[11:14:09 IST] [SUCCESS] Scraped MakeMyTrip | Property: Rhythm Resort | Rates: 2 Categories | Status 200 OK</p>
+                    <p class="text-amber-400">[11:14:14 IST] [WARN] Agoda Proxy rotated due to rate limiting (Proxy IP: 103.22.14.88)</p>
+                    <p>[11:14:18 IST] [SUCCESS] Scraped Airbnb | Property: Solitude Villa | Rates: 1 Category | Status 200 OK</p>
+                    <p class="text-cyan-400">[11:14:22 IST] [DATA] Calculated parity status across 14 properties in 1.42s</p>
+                </div>
+            </div>`;
+        };
+
+        // 13. PROPERTIES (properties.html)
+        pageTemplates['properties.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Tracked Portfolio Management</h1>
+                        <p class="text-xs text-slate-400 mt-1">Managed villas and resorts under active revenue monitoring.</p>
+                    </div>
+                    <button onclick="switchView('add-property.html')" class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">+ Onboard Property</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-bold text-white text-base">Della Villa 4BHK Private Pool</h3>
+                                <p class="text-xs text-slate-400">Lonavala Enclave • 4 Bedrooms • 16 Guests</p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 font-bold">ACTIVE</span>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between text-xs text-slate-300">
+                            <span>CompSet Size: 5 Properties</span>
+                            <span>Sync Status: 100% Operational</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 14. ADD PROPERTY WIZARD (add-property.html)
+        pageTemplates['add-property.html'] = function() {
+            return `
+            <div class="space-y-6 max-w-3xl mx-auto">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">6-Step Property Onboarding Wizard</h1>
+                    <p class="text-xs text-slate-400 mt-1">Configure new competitor or portfolio property for automated crawling.</p>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+                    <div class="flex justify-between items-center text-xs font-semibold text-slate-400 pb-4 border-b border-slate-800">
+                        <span class="text-cyan-400">1. Basic Info</span>
+                        <span>2. Market</span>
+                        <span>3. CompSet</span>
+                        <span>4. OTA URLs</span>
+                        <span>5. Pricing Bounds</span>
+                        <span>6. Review</span>
+                    </div>
+
+                    <div class="space-y-4 text-xs">
+                        <div>
+                            <label class="block text-slate-300 font-semibold mb-1">Property Name</label>
+                            <input type="text" placeholder="e.g., Whispering Pines Luxury Villa" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 font-semibold mb-1">Property Type</label>
+                            <select class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-slate-200">
+                                <option>Private Villa (3BHK - 6BHK)</option>
+                                <option>Boutique Resort</option>
+                                <option>Luxury Heritage Hotel</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-2 pt-4">
+                        <button onclick="switchView('properties.html')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded text-xs font-semibold">Cancel</button>
+                        <button onclick="alert('Property saved to tracking pipeline!'); switchView('properties.html');" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-xs font-semibold">Next Step →</button>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 15. ML MODELS (ml-models.html)
+        pageTemplates['ml-models.html'] = function() {
+            return `
+            <div class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white tracking-tight">Machine Learning Model Laboratory</h1>
+                        <p class="text-xs text-slate-400 mt-1">Price elasticity curves, XGBoost demand predictors, and training telemetry.</p>
+                    </div>
+                    <span class="badge-tag badge-ai">[ML ENGINE V3.4]</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                        <h3 class="font-bold text-white text-sm mb-2">Demand Elasticity Model</h3>
+                        <p class="text-xs text-slate-400 mb-4">Price sensitivity multiplier based on local weekend events</p>
+                        <div class="p-4 bg-slate-950 rounded-lg text-xs space-y-2 font-mono">
+                            <div class="flex justify-between"><span>Model Architecture:</span><span class="text-cyan-400">XGBoost Regressor</span></div>
+                            <div class="flex justify-between"><span>Training RMSE:</span><span class="text-emerald-400">₹420.50</span></div>
+                            <div class="flex justify-between"><span>MAPE Accuracy:</span><span class="text-emerald-400">96.2%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        // 16. SETTINGS (settings.html)
+        pageTemplates['settings.html'] = function() {
+            return `
+            <div class="space-y-6 max-w-4xl">
+                <div>
+                    <h1 class="text-2xl font-bold text-white tracking-tight">System & API Configuration Center</h1>
+                    <p class="text-xs text-slate-400 mt-1">Scraper frequencies, API tokens, tax GST rules, and WhatsApp webhook alerts.</p>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6 text-xs">
+                    <div>
+                        <h3 class="font-bold text-white text-sm mb-3">Scraper Schedule Settings</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-slate-400 mb-1">Crawl Frequency</label>
+                                <select class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-200">
+                                    <option>Every 15 minutes (High Priority)</option>
+                                    <option>Hourly Sync</option>
+                                    <option>Daily at 06:00 IST</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Default Currency Display</label>
+                                <input type="text" value="INR (₹)" disabled class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-400">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800">
+                        <button onclick="alert('Settings saved successfully!');" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-semibold rounded">Save Configuration Changes</button>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+    </script>
+</body>
+</html>

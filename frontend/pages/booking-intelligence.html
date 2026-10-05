@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set title = "Demand & Booking Pace" %}
+{% set active = "booking-intelligence.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading booking intelligence...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/booking?market=' + encodeURIComponent(HotelIQ.market));
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div><h1 class="text-2xl font-bold text-white">Demand & Booking Pace Workspace</h1>
+      <span class="badge-tag badge-estimated">ESTIMATED</span>
+      <p class="text-xs text-slate-400 mt-1">${d.disclaimer}</p></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5"><h3 class="font-bold text-sm mb-4">Inferred lead-time mix</h3><div class="h-64"><canvas id="bookingLeadChart"></canvas></div></div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5"><h3 class="font-bold text-sm mb-4">Recent occupancy estimates</h3><div class="h-64"><canvas id="pickupVelocityChart"></canvas></div></div>
+      </div>
+    </div>`;
+    const lt = d.lead_time || {};
+    new Chart(document.getElementById('bookingLeadChart'), {type:'doughnut', data:{labels:Object.keys(lt), datasets:[{data:Object.values(lt), backgroundColor:['#ef4444','#f59e0b','#0284c7','#6366f1','#10b981']}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}}}});
+    const est = (d.recent_estimates||[]).slice(0,12).reverse();
+    new Chart(document.getElementById('pickupVelocityChart'), {type:'bar', data:{labels:est.map(x=>x.created_at.slice(5,16)), datasets:[{label:'Est. occupancy %', data:est.map(x=>x.estimated_occupancy), backgroundColor:'#14b8a6'}]}, options:{responsive:true,maintainAspectRatio:false}});
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load booking intelligence. '+e.message); }
+})();
+</script>
+{% endblock %}

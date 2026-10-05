@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set title = "Financial Analytics" %}
+{% set active = "revenue.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading revenue...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/revenue?market=' + encodeURIComponent(HotelIQ.market));
+    const rows = (d.by_property||[]).slice(0,15).map(r=>`<tr class="border-b border-slate-800"><td class="p-2">${r.name}</td><td class="p-2">${r.estimated_occupancy}%</td><td class="p-2">${HotelIQ.inr(r.estimated_revenue)}</td></tr>`).join('');
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div><h1 class="text-2xl font-bold text-white">Financial Analytics & GBV Center</h1>
+      <span class="badge-tag badge-estimated">ESTIMATED</span>
+      <p class="text-xs text-slate-400 mt-1">${d.methodology}</p></div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl"><span class="text-xs text-slate-400">Sum of latest property estimates</span><div class="text-2xl font-black text-emerald-400 mt-1">${HotelIQ.inr(d.total_estimated_revenue)}</div></div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl"><span class="text-xs text-slate-400">Avg estimated occupancy</span><div class="text-2xl font-black text-cyan-400 mt-1">${d.avg_estimated_occupancy??'—'}%</div></div>
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl"><span class="text-xs text-slate-400">Kind</span><div class="text-2xl font-black text-indigo-400 mt-1">Estimate</div></div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5"><h3 class="font-bold text-sm mb-4">Monthly estimated GBV</h3><div class="h-64"><canvas id="revenueMonthlyChart"></canvas></div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-x-auto"><table class="w-full text-xs"><thead><tr class="text-slate-400"><th class="p-2 text-left">Property</th><th class="p-2">Est. occupancy</th><th class="p-2">Est. revenue</th></tr></thead><tbody>${rows}</tbody></table></div>
+    </div>`;
+    const m = d.monthly||[];
+    new Chart(document.getElementById('revenueMonthlyChart'), {type:'bar', data:{labels:m.map(x=>x.month), datasets:[{label:'Estimated GBV', data:m.map(x=>x.revenue), backgroundColor:'#0284c7'}]}, options:{responsive:true,maintainAspectRatio:false}});
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load revenue. '+e.message); }
+})();
+</script>
+{% endblock %}

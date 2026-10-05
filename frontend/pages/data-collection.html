@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set title = "Data Collection Console" %}
+{% set active = "data-collection.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading collection status...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadCol(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/collection/status');
+    const logs = (d.logs||[]).map(l => `<p class="${l.level==='ERROR'?'text-red-400':l.level==='WARN'?'text-amber-400':'text-emerald-400'}">[${l.created_at}] [${l.level}] ${l.message}</p>`).join('');
+    const last = d.runs?.[0];
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div><h1 class="text-2xl font-bold text-white">Data Collection Console</h1>
+        <p class="text-xs text-slate-400">Writes DEMO snapshots only. Does not scrape MakeMyTrip or bypass anti-bot controls.</p></div>
+        <button id="run-btn" class="bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Run Collection</button>
+      </div>
+      <div class="text-xs text-slate-400">Last run: ${last? last.status + ' · ' + (last.finished_at||last.started_at) + ' · records '+last.records_written : 'none'}</div>
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs h-80 overflow-y-auto space-y-1">${logs||'<p>No logs yet.</p>'}</div>
+    </div>`;
+    document.getElementById('run-btn').onclick = async () => {
+      const btn = document.getElementById('run-btn');
+      btn.disabled = true; btn.textContent = 'Running...';
+      try { await HotelIQ.api('/api/collection/run', {method:'POST', body:'{}'}); await loadCol(); }
+      catch(e){ alert(e.message); btn.disabled=false; btn.textContent='Run Collection'; }
+    };
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load collection status. '+e.message); }
+}
+loadCol();
+</script>
+{% endblock %}

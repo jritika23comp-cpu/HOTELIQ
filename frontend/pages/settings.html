@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set title = "Settings" %}
+{% set active = "settings.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading settings...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/settings');
+    const s = d.settings || {};
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6 max-w-4xl">
+      <div><h1 class="text-2xl font-bold text-white">System configuration</h1>
+      <p class="text-xs text-slate-400">Profile, market, and alert thresholds. API keys are never stored in frontend code.</p></div>
+      <form id="set-form" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6 text-xs">
+        <div><div class="text-slate-300 mb-2">Signed in as ${d.user?.email} (${d.user?.role})</div></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-slate-400 mb-1">Price alert threshold %</label>
+            <input name="price_alert_threshold" value="${s.price_alert_threshold||8}" class="w-full bg-slate-950 border border-slate-800 rounded p-2"></div>
+          <div><label class="block text-slate-400 mb-1">Collection cadence (label)</label>
+            <select name="crawl_frequency" class="w-full bg-slate-950 border border-slate-800 rounded p-2">
+              <option>Hourly Sync</option><option>Every 15 minutes (High Priority)</option><option>Daily at 06:00 IST</option>
+            </select></div>
+          <div><label class="block text-slate-400 mb-1">Default market</label>
+            <select name="default_market" class="w-full bg-slate-950 border border-slate-800 rounded p-2">
+              <option value="lonavala">Lonavala</option><option value="karjat">Karjat</option><option value="goa">Goa</option>
+            </select></div>
+          <div><label class="block text-slate-400 mb-1">Currency</label>
+            <input value="INR (₹)" disabled class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-400"></div>
+        </div>
+        <button class="px-4 py-2 bg-cyan-600 text-white font-semibold rounded">Save configuration</button>
+        <p id="set-ok" class="text-emerald-400 hidden">Saved.</p>
+      </form>
+    </div>`;
+    const form = document.getElementById('set-form');
+    form.crawl_frequency.value = s.crawl_frequency || 'Hourly Sync';
+    form.default_market.value = s.default_market || HotelIQ.market;
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      await HotelIQ.api('/api/settings', {method:'POST', body: JSON.stringify(Object.fromEntries(fd.entries()))});
+      document.getElementById('set-ok').classList.remove('hidden');
+    };
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load settings. '+e.message); }
+})();
+</script>
+{% endblock %}

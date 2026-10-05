@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% set title = "Pricing Analysis Laboratory" %}
+{% set active = "pricing.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading pricing...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/pricing?market=' + encodeURIComponent(HotelIQ.market));
+    const s = d.market_stats || {};
+    const rows = (d.items||[]).map(r => {
+      const cls = (r.price_difference||0) > 500 ? 'text-amber-300' : (r.price_difference||0) < -500 ? 'text-emerald-300' : 'text-slate-200';
+      return `<tr class="hover:bg-slate-800/40"><td class="p-3 text-left font-semibold">${r.name}${r.is_portfolio?' <span class="text-cyan-400">[portfolio]</span>':''}</td>
+        <td class="p-3 font-mono ${cls}">${HotelIQ.inr(r.price)}</td>
+        <td class="p-3">${HotelIQ.inr(s.average)}</td>
+        <td class="p-3">${HotelIQ.inr(s.median)}</td>
+        <td class="p-3">${r.price_difference==null?'—':HotelIQ.inr(r.price_difference)}</td>
+        <td class="p-3">${r.status||'—'}</td>
+        <td class="p-3 text-right"><a class="text-cyan-400" href="/competitor-detail.html?id=${r.id}">Open</a></td></tr>`;
+    }).join('');
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div class="flex justify-between gap-4 flex-wrap">
+        <div><h1 class="text-2xl font-bold text-white">Pricing Analysis Laboratory</h1>
+        <p class="text-xs text-slate-400">Min ${HotelIQ.inr(s.minimum)} · Max ${HotelIQ.inr(s.maximum)} · n=${s.count}</p></div>
+        <button id="btn-reprice" class="bg-emerald-600 text-white px-3.5 py-2 rounded-lg text-xs font-semibold">Refresh from latest snapshots</button>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+        <table class="w-full text-center text-xs"><thead class="bg-slate-950 text-slate-400 text-[10px] uppercase"><tr>
+          <th class="p-3 text-left">Property</th><th class="p-3">Observed price</th><th class="p-3">Market avg</th><th class="p-3">Median</th><th class="p-3">Difference</th><th class="p-3">Availability</th><th></th>
+        </tr></thead><tbody class="divide-y divide-slate-800">${rows}</tbody></table>
+      </div>
+    </div>`;
+    document.getElementById('btn-reprice').onclick = () => location.reload();
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load pricing. '+e.message); }
+})();
+</script>
+{% endblock %}

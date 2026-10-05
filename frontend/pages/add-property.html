@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% set title = "Onboarding Wizard" %}
+{% set active = "add-property.html" %}
+{% block content %}
+<div class="space-y-6 max-w-3xl mx-auto">
+  <div>
+    <h1 class="text-2xl font-bold text-white tracking-tight">Property Onboarding</h1>
+    <p class="text-xs text-slate-400 mt-1">Adds a property to SQLite tracking. Prices remain DEMO until collection runs.</p>
+  </div>
+  <form id="add-form" class="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4 text-xs">
+    <div><label class="block text-slate-300 font-semibold mb-1">Property Name</label>
+      <input name="name" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5"></div>
+    <div><label class="block text-slate-300 font-semibold mb-1">Location</label>
+      <input name="location" required class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5"></div>
+    <div><label class="block text-slate-300 font-semibold mb-1">Market</label>
+      <select name="market" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+        <option value="lonavala">Lonavala</option><option value="karjat">Karjat</option><option value="goa">Goa</option>
+      </select></div>
+    <div><label class="block text-slate-300 font-semibold mb-1">Platform</label>
+      <input name="platform" value="MakeMyTrip" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5"></div>
+    <div><label class="block text-slate-300 font-semibold mb-1">Public booking URL</label>
+      <input name="booking_url" value="https://www.makemytrip.com/hotels/" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5"></div>
+    <div><label class="block text-slate-300 font-semibold mb-1">Category</label>
+      <select name="category" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5">
+        <option>Private Villa (3BHK - 6BHK)</option><option>Boutique Resort</option><option>Luxury Heritage Hotel</option><option>Hotel</option>
+      </select></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="block mb-1">Rating</label><input name="rating" type="number" step="0.1" value="4.2" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5"></div>
+      <div><label class="block mb-1">Total rooms</label><input name="total_rooms" type="number" value="20" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5"></div>
+    </div>
+    <p id="add-err" class="text-red-400 hidden"></p>
+    <div class="flex justify-end space-x-2 pt-2">
+      <a href="/properties.html" class="px-4 py-2 bg-slate-800 text-slate-300 rounded font-semibold">Cancel</a>
+      <button class="px-4 py-2 bg-cyan-600 text-white rounded font-semibold">Save to tracking</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = Object.fromEntries(fd.entries());
+  body.rating = parseFloat(body.rating); body.total_rooms = parseInt(body.total_rooms,10);
+  const err = document.getElementById('add-err');
+  try {
+    await HotelIQ.api('/api/competitors', {method:'POST', body: JSON.stringify(body)});
+    location.href = '/properties.html';
+  } catch(ex) { err.textContent = ex.message; err.classList.remove('hidden'); }
+});
+</script>
+{% endblock %}

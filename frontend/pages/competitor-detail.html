@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% set title = "Property Intelligence Profile" %}
+{% set active = "competitor-detail.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading property...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  let id = new URLSearchParams(location.search).get('id');
+  try {
+    if (!id) {
+      const list = await HotelIQ.api('/api/competitors?per_page=1&sort=name');
+      id = list.items?.[0]?.id;
+    }
+    if (!id) { root.innerHTML = HotelIQ.stateBox('empty','No competitors found.'); return; }
+    const d = await HotelIQ.api('/api/competitors/' + id);
+    const p = d.property;
+    const prices = (d.prices||[]).slice().reverse();
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col md:flex-row justify-between gap-6">
+        <div>
+          <div class="flex items-center space-x-2"><h1 class="text-xl font-extrabold text-white">${p.name}</h1><span class="badge-tag badge-demo">DEMO DATA</span></div>
+          <p class="text-xs text-slate-400 mt-1">${p.location} · ${p.category} · ${p.platform}</p>
+          <div class="flex gap-3 mt-3 text-xs"><span class="text-amber-400 font-bold">${p.rating}/5</span><span>${p.total_rooms} listed rooms</span><a class="text-cyan-400" href="${p.booking_url}" target="_blank" rel="noopener">Public listing URL</a></div>
+        </div>
+        <a href="/pricing.html" class="bg-cyan-600 text-white px-3.5 py-2 rounded-lg text-xs font-semibold h-fit">Compare in Rate Matrix</a>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <h3 class="font-bold text-sm mb-1">Historical demo prices</h3>
+            <div class="h-48"><canvas id="detailChart"></canvas></div>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-xs">
+            <h3 class="font-bold text-sm mb-3">Detected changes</h3>
+            ${(d.changes||[]).slice(0,8).map(c=>`<div class="py-2 border-b border-slate-800">${c.change_type}: ${c.old_value} → ${c.new_value} ${c.percentage_change!=null? '('+c.percentage_change+'%)':''} <span class="text-slate-500">${c.detected_at}</span></div>`).join('') || 'No changes yet.'}
+          </div>
+        </div>
+        <div class="space-y-6">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-xs">
+            <h3 class="font-bold text-sm mb-2">Competitor score ${d.score?.score}</h3>
+            <p class="text-slate-400 mb-2">${d.score?.methodology}</p>
+            ${(d.score?.breakdown||[]).map(b=>`<div class="flex justify-between py-1"><span>${b.factor}</span><span>${b.points}</span></div>`).join('')}
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-xs">
+            <h3 class="font-bold text-sm mb-2">Latest availability</h3>
+            <p>${d.availability?.[0]?.status || '—'} at ${d.availability?.[0]?.observed_at || '—'}</p>
+            <p class="text-slate-500 mt-2">Unavailable does not prove a confirmed booking.</p>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    new Chart(document.getElementById('detailChart'), {type:'line', data:{labels:prices.map(x=>x.observed_at.slice(5,16)), datasets:[{label:'Price INR', data:prices.map(x=>x.price), borderColor:'#10b981'}]}, options:{responsive:true,maintainAspectRatio:false}});
+  } catch(e) {
+    root.innerHTML = HotelIQ.stateBox('error','Unable to load property. '+e.message);
+  }
+})();
+</script>
+{% endblock %}

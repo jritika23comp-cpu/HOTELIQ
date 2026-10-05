@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% set title = "Competitor Intelligence Database" %}
+{% set active = "competitors.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading competitors...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let pageN = 1;
+async function loadCompetitors(){
+  const root = document.getElementById('page-root');
+  const q = document.getElementById('q')?.value || '';
+  const sort = document.getElementById('sort')?.value || 'name';
+  try {
+    const d = await HotelIQ.api(`/api/competitors?market=${encodeURIComponent(HotelIQ.market)}&q=${encodeURIComponent(q)}&sort=${sort}&page=${pageN}&per_page=12`);
+    const rows = (d.items||[]).map(r => `<tr class="hover:bg-slate-800/40">
+      <td class="p-3.5"><div class="font-bold text-white text-sm">${r.name}</div><div class="text-[11px] text-slate-400">${r.category||''}</div></td>
+      <td class="p-3.5">${r.location}</td>
+      <td class="p-3.5">${r.platform}</td>
+      <td class="p-3.5 font-mono">${HotelIQ.inr(r.latest_price)} <span class="badge-tag badge-demo">DEMO</span></td>
+      <td class="p-3.5">${r.rating ?? '—'}</td>
+      <td class="p-3.5">${r.availability_status||'—'}</td>
+      <td class="p-3.5">${r.score?.score ?? '—'}</td>
+      <td class="p-3.5 text-right"><a href="/competitor-detail.html?id=${r.id}" class="px-2.5 py-1 bg-cyan-600/20 text-cyan-300 border border-cyan-500/40 rounded">Inspect</a></td>
+    </tr>`).join('');
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center gap-4 flex-wrap">
+        <div><h1 class="text-2xl font-bold text-white">Competitor Intelligence Database</h1><p class="text-xs text-slate-400">Genuine property catalog with demo price snapshots.</p></div>
+        <a href="/add-property.html" class="bg-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Add Competitor</a>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-2 items-center text-xs">
+        <input id="q" value="${q.replace(/"/g,'')}" placeholder="Search name, location..." class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 flex-1 min-w-[180px]">
+        <select id="sort" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
+          <option value="name">Sort: Name</option><option value="rating">Sort: Rating</option><option value="price">Sort: Price</option>
+        </select>
+        <button onclick="pageN=1;loadCompetitors()" class="px-3 py-2 bg-slate-800 rounded">Search</button>
+        <a href="/api/export/competitors.csv" class="px-3 py-2 bg-slate-800 rounded">Export CSV</a>
+        <span class="text-slate-400">Showing ${d.items.length} of ${d.total}</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-x-auto">
+        <table class="w-full text-left text-xs"><thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr>
+          <th class="p-3.5">Property</th><th class="p-3.5">Location</th><th class="p-3.5">Platform</th><th class="p-3.5">Latest price</th><th class="p-3.5">Rating</th><th class="p-3.5">Availability</th><th class="p-3.5">Score</th><th></th>
+        </tr></thead><tbody class="divide-y divide-slate-800">${rows||'<tr><td class="p-4" colspan="8">No competitors found.</td></tr>'}</tbody></table>
+      </div>
+      <div class="flex gap-2 text-xs">
+        <button onclick="if(pageN>1){pageN--;loadCompetitors()}" class="px-3 py-1 bg-slate-800 rounded">Prev</button>
+        <span class="py-1">Page ${d.page} / ${d.pages||1}</span>
+        <button onclick="if(pageN<(d.pages||1)){pageN++;loadCompetitors()}" class="px-3 py-1 bg-slate-800 rounded">Next</button>
+      </div>
+      <p class="text-[11px] text-slate-500">Competitor score methodology: ${d.items[0]?.score?.methodology || 'See property profile.'}</p>
+    </div>`;
+    document.getElementById('sort').value = sort;
+  } catch(e) {
+    root.innerHTML = HotelIQ.stateBox('error','Unable to load competitors. '+e.message);
+  }
+}
+loadCompetitors();
+</script>
+{% endblock %}

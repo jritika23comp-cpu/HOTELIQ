@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b0f19">
+    <title>HOTELIQ - Start the application</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0b0f19;
+            color: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: radial-gradient(ellipse at top left, #172554 0, #0b0f19 48rem);
+        }
+        main {
+            width: min(100%, 720px);
+            padding: clamp(24px, 5vw, 48px);
+            border: 1px solid #263449;
+            border-radius: 20px;
+            background: rgba(17, 24, 39, 0.96);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            color: #67e8f9;
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+        }
+        .brand-mark {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #06b6d4, #4f46e5);
+            color: #fff;
+            font-size: 1.25rem;
+        }
+        h1 { margin: 0; color: #f8fafc; font-size: clamp(1.6rem, 5vw, 2.25rem); line-height: 1.15; }
+        .intro { margin: 14px 0 28px; color: #94a3b8; line-height: 1.65; }
+        .status {
+            margin: 0 0 24px;
+            padding: 12px 14px;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            color: #cbd5e1;
+            background: #0f172a;
+            font-size: 0.9rem;
+        }
+        .status[data-state="ready"] { border-color: #047857; color: #a7f3d0; }
+        .steps {
+            display: grid;
+            gap: 12px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .steps li {
+            display: grid;
+            grid-template-columns: 28px minmax(0, 1fr);
+            align-items: start;
+            gap: 10px;
+            color: #cbd5e1;
+            line-height: 1.5;
+        }
+        .steps li > span:first-child {
+            display: grid;
+            width: 26px;
+            height: 26px;
+            place-items: center;
+            border-radius: 50%;
+            background: #164e63;
+            color: #a5f3fc;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        code {
+            overflow-wrap: anywhere;
+            color: #67e8f9;
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+        .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+        .button {
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            padding: 0 18px;
+            border: 1px solid #0891b2;
+            border-radius: 9px;
+            background: #0891b2;
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .button:hover { background: #06b6d4; }
+        .button.secondary { border-color: #334155; background: #1e293b; color: #cbd5e1; }
+        .note { margin: 24px 0 0; color: #64748b; font-size: 0.8rem; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">H</span><span>HOTELIQ</span></div>
+        <h1>Start the HotelIQ application</h1>
+        <p class="intro">The application pages use Flask templates, authenticated APIs, and the project database. VS Code Live Server only serves static files, so it cannot render the actual pages.</p>
+        <p class="status" id="server-status" role="status" data-state="checking">Checking whether the HotelIQ backend is running...</p>
+        <ol class="steps">
+            <li><span>1</span><span>Open a terminal in the project folder.</span></li>
+            <li><span>2</span><span>Install the project dependencies with <code>pip install -r requirements.txt</code>.</span></li>
+            <li><span>3</span><span>Start the app with <code>python run.py</code>.</span></li>
+            <li><span>4</span><span>Open HotelIQ using the button below. Do not use Live Server for the application pages.</span></li>
+        </ol>
+        <div class="actions">
+            <a class="button" href="http://127.0.0.1:5000/">Open HotelIQ</a>
+            <a class="button secondary" href="README.md">Setup guide</a>
+        </div>
+        <p class="note">HotelIQ uses a clearly labelled controlled demo dataset. Starting the app does not perform live OTA scraping.</p>
+    </main>
+    <script>
+        const status = document.getElementById("server-status");
+        fetch("http://127.0.0.1:5000/health")
+            .then((response) => {
+                if (!response.ok) throw new Error("Backend is not available");
+                status.dataset.state = "ready";
+                status.textContent = "Backend is running. Open HotelIQ to sign in.";
+            })
+            .catch(() => {
+                status.textContent = "Backend is not running yet. Start it with `python run.py`, then open HotelIQ.";
+            });
+    </script>
+</body>
+</html>

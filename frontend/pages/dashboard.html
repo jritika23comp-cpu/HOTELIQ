@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set title = "Executive Command Center" %}
+{% set active = "dashboard.html" %}
+{% block content %}
+<div id="page-root">{{ HotelIQ.stateBox('loading','Loading dashboard...') if false }}<div class="text-xs text-slate-400">Loading dashboard...</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/dashboard?market=' + encodeURIComponent(HotelIQ.market));
+    const rec = (d.latest_observations||[]).map(r => `<tr class="hover:bg-slate-800/40">
+      <td class="p-3 font-semibold text-white">${r.name}</td>
+      <td class="p-3 text-slate-400">${r.category||''}</td>
+      <td class="p-3 font-mono font-bold">${HotelIQ.inr(r.price)} <span class="badge-tag badge-demo">DEMO</span></td>
+      <td class="p-3">${r.status||'—'}</td>
+      <td class="p-3 text-slate-400">${r.observed_at||'—'}</td>
+      <td class="p-3 text-right"><a class="text-cyan-400" href="/competitor-detail.html?id=${r.id}">Inspect</a></td>
+    </tr>`).join('');
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-2xl font-bold text-white tracking-tight">Executive Command Center</h1>
+            <span class="badge-tag badge-observed">[OBSERVED DEMO]</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">Market: <span class="text-cyan-300 font-semibold">${MARKET_NAMES[HotelIQ.market]}</span></p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <a href="/ai-insights.html" class="bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 px-3 py-1.5 rounded-lg text-xs font-semibold">AI Insights</a>
+          <a href="/data-collection.html" class="bg-slate-800 text-slate-200 px-3 py-1.5 rounded-lg text-xs border border-slate-700">Run Collection</a>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        ${kpi('Average Daily Rate (ADR)','calculated', HotelIQ.inr(d.average_market_price), 'Median '+HotelIQ.inr(d.median_market_price))}
+        ${kpi('Competitors tracked','observed', d.competitor_count, 'Active catalog')}
+        ${kpi('Est. occupancy','estimated', (d.estimated_occupancy??'—')+'%', 'Inferred from availability — not confirmed bookings')}
+        ${kpi('Est. market GBV proxy','estimated', HotelIQ.inr(d.estimated_revenue), 'See methodology on Revenue page')}
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <h3 class="font-bold text-slate-100 text-sm mb-4">Market average price by day</h3>
+          <div class="h-64"><canvas id="dashboardRateChart"></canvas></div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <h3 class="font-bold text-slate-100 text-sm mb-3"><i class="fa-solid fa-brain text-indigo-400 mr-2"></i>Open alerts</h3>
+          <div class="space-y-3">${(d.alerts||[]).slice(0,4).map(a=>`<div class="p-3 bg-slate-950 border border-slate-800 rounded text-xs"><div class="font-semibold text-amber-300">${a.alert_type} · ${a.severity}</div><p class="text-slate-300 mt-1">${a.message}</p></div>`).join('') || '<p class="text-xs text-slate-500">No open alerts.</p>'}
+          <a href="/alerts.html" class="block mt-4 text-center py-2 bg-slate-800 rounded text-xs">View all alerts</a>
+        </div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div class="flex justify-between mb-4"><h3 class="font-bold text-sm">Latest observations</h3><a href="/competitors.html" class="text-xs text-cyan-400">Full database →</a></div>
+        <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300"><thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">Property</th><th class="p-3">Category</th><th class="p-3">Price</th><th class="p-3">Availability</th><th class="p-3">Observed at</th><th class="p-3"></th></tr></thead><tbody class="divide-y divide-slate-800">${rec}</tbody></table></div>
+      </div>
+    </div>`;
+    const ctx = document.getElementById('dashboardRateChart');
+    new Chart(ctx, { type:'line', data:{ labels:(d.history||[]).map(h=>h.day), datasets:[{label:'Market avg (DEMO)', data:(d.history||[]).map(h=>h.avg_price), borderColor:'#0284c7', fill:true, backgroundColor:'rgba(2,132,199,0.1)', tension:0.3}]}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{labels:{color:'#94a3b8'}}}, scales:{x:{ticks:{color:'#64748b'}}, y:{ticks:{color:'#64748b'}}}}});
+  } catch(e) {
+    root.innerHTML = HotelIQ.stateBox('error', 'Unable to load dashboard. ' + e.message);
+  }
+  function kpi(label, kind, value, sub){
+    return `<div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl"><div class="flex justify-between"><span class="text-xs text-slate-400">${label}</span><span class="badge-tag badge-${kind}">[${kind}]</span></div><div class="text-2xl font-extrabold text-white mt-2">${value}</div><div class="text-xs text-slate-400 mt-2">${sub}</div></div>`;
+  }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set title = "Historical Time Machine" %}
+{% set active = "historical.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading history...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const list = await HotelIQ.api('/api/competitors?market='+encodeURIComponent(HotelIQ.market)+'&per_page=8');
+    const first = list.items?.[0];
+    if(!first){ root.innerHTML = HotelIQ.stateBox('empty','No properties.'); return; }
+    const h = await HotelIQ.api('/api/history/' + first.id);
+    root.innerHTML = HotelIQ.demoBanner(list) + `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div><h1 class="text-2xl font-bold text-white">Time Machine / Historical Analysis</h1>
+        <p class="text-xs text-slate-400">Timestamped demo observations for ${first.name}</p></div>
+        <select id="hid" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs">${(list.items||[]).map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5"><div class="h-64"><canvas id="historicalTrendChart"></canvas></div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-x-auto text-xs">
+        <table class="w-full"><thead><tr class="text-slate-400"><th class="p-2 text-left">Observed at</th><th>Price</th><th>Change</th><th>Source</th></tr></thead>
+        <tbody id="hist-body">${(h.prices||[]).slice(-20).reverse().map(p=>`<tr class="border-b border-slate-800"><td class="p-2">${p.observed_at}</td><td>${HotelIQ.inr(p.price)}</td><td>${p.percentage_change??'—'}</td><td><span class="badge-tag badge-demo">${p.source}</span></td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>`;
+    let chart = new Chart(document.getElementById('historicalTrendChart'), {type:'line', data:{labels:(h.prices||[]).map(p=>p.observed_at.slice(5,16)), datasets:[{label:first.name, data:(h.prices||[]).map(p=>p.price), borderColor:'#10b981'}]}, options:{responsive:true,maintainAspectRatio:false}});
+    document.getElementById('hid').onchange = async (e) => {
+      const id = e.target.value;
+      const hx = await HotelIQ.api('/api/history/' + id);
+      chart.data.labels = (hx.prices||[]).map(p=>p.observed_at.slice(5,16));
+      chart.data.datasets[0].data = (hx.prices||[]).map(p=>p.price);
+      chart.data.datasets[0].label = e.target.selectedOptions[0].text;
+      chart.update();
+      document.getElementById('hist-body').innerHTML = (hx.prices||[]).slice(-20).reverse().map(p=>`<tr class="border-b border-slate-800"><td class="p-2">${p.observed_at}</td><td>${HotelIQ.inr(p.price)}</td><td>${p.percentage_change??'—'}</td><td>${p.source}</td></tr>`).join('');
+    };
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load history. '+e.message); }
+})();
+</script>
+{% endblock %}

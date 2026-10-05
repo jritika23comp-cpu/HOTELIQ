@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% set title = "ML Model Laboratory" %}
+{% set active = "ml-models.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading model status...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function loadMl(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/ml/status');
+    const m = d.latest?.metrics || {};
+    if (typeof m === 'string') { try { Object.assign(m, JSON.parse(m)); } catch(e){} }
+    const props = await HotelIQ.api('/api/competitors?per_page=50');
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div class="flex justify-between items-center flex-wrap gap-2">
+        <div><h1 class="text-2xl font-bold text-white">Machine Learning Model Laboratory</h1>
+        <p class="text-xs text-slate-400">Random Forest demand-score proxy trained on this workspace's demo snapshots. Metrics are from a real train/test split.</p></div>
+        <button id="train-btn" class="bg-pink-600 text-white px-3 py-1.5 rounded text-xs font-semibold">Retrain model</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <h3 class="font-bold text-white text-sm mb-2">Demand score model</h3>
+          <div class="p-4 bg-slate-950 rounded-lg text-xs space-y-2 font-mono">
+            <div class="flex justify-between"><span>Architecture</span><span class="text-cyan-400">RandomForestRegressor</span></div>
+            <div class="flex justify-between"><span>Version</span><span>${d.latest?.version || 'not trained'}</span></div>
+            <div class="flex justify-between"><span>Trained</span><span>${d.latest?.training_date || '—'}</span></div>
+            <div class="flex justify-between"><span>MAE</span><span class="text-emerald-400">${m.mae ?? '—'}</span></div>
+            <div class="flex justify-between"><span>RMSE</span><span class="text-emerald-400">${m.rmse ?? '—'}</span></div>
+            <div class="flex justify-between"><span>R²</span><span class="text-emerald-400">${m.r2 ?? '—'}</span></div>
+            <div class="flex justify-between"><span>Train / test</span><span>${m.train_size||'—'} / ${m.test_size||'—'}</span></div>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-3">${m.target||''}</p>
+        </div>
+        <form id="pred-form" class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-xs space-y-3">
+          <h3 class="font-bold text-white text-sm">Run prediction</h3>
+          <select name="property_id" class="w-full bg-slate-950 border border-slate-800 rounded p-2">${(props.items||[]).map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select>
+          <input name="check_in" type="date" required class="w-full bg-slate-950 border border-slate-800 rounded p-2">
+          <input name="check_out" type="date" required class="w-full bg-slate-950 border border-slate-800 rounded p-2">
+          <button class="bg-cyan-600 text-white px-3 py-2 rounded">Predict demand score</button>
+          <pre id="pred-out" class="text-slate-300 whitespace-pre-wrap"></pre>
+        </form>
+      </div>
+    </div>`;
+    document.getElementById('train-btn').onclick = async () => {
+      const btn = document.getElementById('train-btn'); btn.disabled=true; btn.textContent='Training...';
+      try { await HotelIQ.api('/api/ml/train', {method:'POST', body:'{}'}); await loadMl(); }
+      catch(e){ alert(e.message); btn.disabled=false; btn.textContent='Retrain model'; }
+    };
+    document.getElementById('pred-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const out = await HotelIQ.api('/api/ml/predict', {method:'POST', body: JSON.stringify(Object.fromEntries(fd.entries()))});
+      document.getElementById('pred-out').textContent = JSON.stringify(out, null, 2);
+    };
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load ML status. '+e.message); }
+}
+loadMl();
+</script>
+{% endblock %}

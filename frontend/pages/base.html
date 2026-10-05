@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOTELIQ - {{ title or 'Competitor AI' }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#f0f9ff',100:'#e0f2fe',500:'#0284c7',600:'#0284c7',700:'#0369a1',900:'#0c4a6e', accent:'#6366f1', teal:'#14b8a6', emerald:'#10b981' },
+                        darkbg: '#0b0f19', darkcard: '#111827', darkborder: '#1f2937'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body class="bg-darkbg text-slate-100 font-sans antialiased min-h-screen flex flex-col transition-colors duration-200">
+{% set nav = [
+  ('index.html','fa-right-to-bracket','Login Screen','Command & Analytics'),
+] %}
+<header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 shadow-md">
+    <div class="flex items-center space-x-4">
+        <button id="sidebar-toggle" class="text-slate-400 hover:text-white p-1 rounded md:hidden"><i class="fa-solid fa-bars text-lg"></i></button>
+        <a href="/dashboard.html" class="flex items-center space-x-2.5 group">
+            <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                <i class="fa-solid fa-hotel text-lg"></i>
+            </div>
+            <div>
+                <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">HOTELIQ</span>
+                <span class="text-[10px] block text-cyan-400/80 -mt-1 font-mono tracking-widest">COMPETITOR AI</span>
+            </div>
+        </a>
+        <div class="hidden sm:flex items-center bg-slate-800/80 border border-slate-700/80 rounded-lg px-2.5 py-1 space-x-2 text-xs">
+            <i class="fa-solid fa-location-dot text-cyan-400"></i>
+            <span class="text-slate-400">Market:</span>
+            <select id="market-select" onchange="updateMarket(this.value)" class="bg-transparent font-medium text-slate-200 focus:outline-none cursor-pointer">
+                <option value="lonavala" class="bg-slate-900">Lonavala & Khandala Luxury</option>
+                <option value="karjat" class="bg-slate-900">Karjat Villa Circuit</option>
+                <option value="goa" class="bg-slate-900">North Goa Beachfront</option>
+            </select>
+        </div>
+        <span class="hidden lg:inline badge-tag badge-demo">DEMO MODE</span>
+    </div>
+    <div class="flex items-center space-x-3">
+        <button onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-700 flex items-center justify-center transition">
+            <i class="fa-solid fa-moon text-sm" id="theme-icon"></i>
+        </button>
+        <a href="/alerts.html" class="relative w-8 h-8 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center transition">
+            <i class="fa-solid fa-bell text-sm"></i>
+            <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{{ meta.open_alerts if meta and meta.open_alerts is not none else 0 }}</span>
+        </a>
+        <div class="flex items-center space-x-2 pl-2 border-l border-slate-800">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="User" class="w-8 h-8 rounded-full border border-cyan-500/50 object-cover">
+            <div class="hidden xl:block text-left text-xs">
+                <div class="font-semibold text-slate-200 leading-none">{{ user.name if user else 'Guest' }}</div>
+                <div class="text-[10px] text-slate-400 mt-0.5">{{ user.role if user else '' }}</div>
+            </div>
+            <button onclick="HotelIQ.logout()" class="text-[11px] text-slate-400 hover:text-white px-2">Logout</button>
+        </div>
+    </div>
+</header>
+
+<div class="flex-1 flex overflow-hidden">
+    <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between transition-all duration-200 z-30 shrink-0 hidden md:flex">
+        <div class="p-3 overflow-y-auto space-y-6">
+            <div class="px-3 py-1.5 bg-slate-800/40 rounded-md border border-slate-800/60 text-[11px] text-slate-400 flex items-center space-x-2">
+                <i class="fa-solid fa-compass text-cyan-400"></i>
+                <span>Active:</span>
+                <span class="text-cyan-300 font-semibold truncate">{{ title or 'Dashboard' }}</span>
+            </div>
+            {% macro navlink(href, icon, label) -%}
+            {% set on = active == href %}
+            <a href="/{{ href }}" class="nav-btn flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium transition {{ 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-semibold' if on else 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' }}">
+                <i class="fa-solid {{ icon }} w-4 text-center"></i><span>{{ label }}</span>
+            </a>
+            {%- endmacro %}
+            <div>
+                <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">Command & Analytics</div>
+                <nav class="space-y-1">
+                    {{ navlink('dashboard.html','fa-chart-pie','Executive Dashboard') }}
+                    {{ navlink('competitors.html','fa-shield-halved','Competitor Database') }}
+                    {{ navlink('competitor-detail.html','fa-magnifying-glass-chart','Property Profile') }}
+                </nav>
+            </div>
+            <div>
+                <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">Rate & Revenue Lab</div>
+                <nav class="space-y-1">
+                    {{ navlink('pricing.html','fa-tags','Pricing Matrix Lab') }}
+                    {{ navlink('availability.html','fa-calendar-days','Availability Grid') }}
+                    {{ navlink('booking-intelligence.html','fa-chart-line','Booking & Demand Pace') }}
+                    {{ navlink('revenue.html','fa-indian-rupee-sign','Financial Analytics (GBV)') }}
+                    {{ navlink('historical.html','fa-clock-rotate-left','Historical Time Machine') }}
+                </nav>
+            </div>
+            <div>
+                <div class="text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 mb-2">AI Engine & Operations</div>
+                <nav class="space-y-1">
+                    {{ navlink('ai-insights.html','fa-brain','AI Insights Command') }}
+                    {{ navlink('alerts.html','fa-bell-concierge','Alert Control Center') }}
+                    {{ navlink('data-collection.html','fa-terminal','Data Collection Console') }}
+                    {{ navlink('properties.html','fa-city','Tracked Portfolio') }}
+                    {{ navlink('add-property.html','fa-circle-plus','Onboarding Wizard') }}
+                    {{ navlink('ml-models.html','fa-microchip','ML Model Laboratory') }}
+                    {{ navlink('settings.html','fa-sliders','Settings & API Sync') }}
+                </nav>
+            </div>
+        </div>
+        <div class="p-3 border-t border-slate-800 bg-slate-950/60 text-xs text-slate-400">
+            <div class="flex items-center justify-between text-[11px] mb-1">
+                <span>Collection:</span>
+                <span class="text-amber-300 font-semibold">DEMO DATA</span>
+            </div>
+            <div class="text-[10px] text-slate-500 mt-1.5">Not a live OTA scrape. Permitted demo observations only.</div>
+        </div>
+    </aside>
+    <main class="min-w-0 flex-1 overflow-y-auto bg-slate-950 p-4 lg:p-6" id="main-content">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+<script src="/assets/js/app.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

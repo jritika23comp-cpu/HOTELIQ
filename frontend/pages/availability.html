@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% set title = "Availability Grid" %}
+{% set active = "availability.html" %}
+{% block content %}
+<div id="page-root" class="text-xs text-slate-400">Loading availability...</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(async function(){
+  const root = document.getElementById('page-root');
+  try {
+    const d = await HotelIQ.api('/api/availability?market=' + encodeURIComponent(HotelIQ.market));
+    const days = d.days || [];
+    const chip = (st) => {
+      if (st==='unavailable') return '<span class="bg-red-500/30 text-red-300 px-2 py-1 rounded block border border-red-500/40">Unavailable</span>';
+      if (st==='limited') return '<span class="bg-amber-500/20 text-amber-400 px-2 py-1 rounded block border border-amber-500/30">Limited</span>';
+      if (st==='available') return '<span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded block border border-emerald-500/30">Available</span>';
+      return '<span class="text-slate-500">—</span>';
+    };
+    const body = Object.values(d.grid||{}).map(g => {
+      const cells = days.map(day => `<td class="p-2">${chip(g.by_day[day]?.status)}</td>`).join('');
+      return `<tr><td class="p-3 text-left font-semibold text-white">${g.property.name}</td>${cells}</tr>`;
+    }).join('');
+    root.innerHTML = HotelIQ.demoBanner(d) + `
+    <div class="space-y-6">
+      <div><h1 class="text-2xl font-bold text-white">Availability & Stay Grid</h1>
+      <p class="text-xs text-slate-400 mt-1">${d.disclaimer}</p></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-x-auto">
+        <table class="w-full text-center text-xs"><thead class="bg-slate-950 text-slate-400"><tr><th class="p-3 text-left">Property</th>${days.map(x=>`<th class="p-2">${x}</th>`).join('')}</tr></thead>
+        <tbody class="divide-y divide-slate-800">${body||'<tr><td class="p-4">No availability snapshots.</td></tr>'}</tbody></table>
+      </div>
+    </div>`;
+  } catch(e) { root.innerHTML = HotelIQ.stateBox('error','Unable to load availability. '+e.message); }
+})();
+</script>
+{% endblock %}

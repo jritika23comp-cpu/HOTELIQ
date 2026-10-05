@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,7 +15,9 @@ from .analytics import percentage_change
 from .auth import utcnow
 from .database import ROOT, get_db, row_to_dict, rows_to_list
 
-MODEL_DIR = ROOT / "models"
+MODEL_DIR = Path(os.getenv("MODEL_DIR", str(ROOT / "models")))
+if not MODEL_DIR.is_absolute():
+    MODEL_DIR = ROOT / MODEL_DIR
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_PATH = MODEL_DIR / "demand_rf.joblib"
 VERSION = "demand-rf-v1"

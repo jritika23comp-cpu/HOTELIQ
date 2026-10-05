@@ -29,6 +29,7 @@ def create_app() -> Flask:
     CORS(app, supports_credentials=True)
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
 
     init_db()
     ensure_default_user()

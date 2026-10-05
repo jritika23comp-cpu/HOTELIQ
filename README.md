@@ -69,12 +69,24 @@ These paths are Flask routes rendered from `frontend/pages/`. The authenticated 
 - `POST /api/collection/run` `GET /api/collection/status`
 - `POST /api/ml/train` `POST /api/ml/predict` `GET /api/ml/status`
 
-## Deploy
+## Deploy on Render
 
-Set `FLASK_SECRET_KEY` and `DEFAULT_ADMIN_PASSWORD` in the host environment. Run with gunicorn:
+HotelIQ is a single Flask service: it renders the frontend pages and serves the authenticated API from the same origin. SQLite and the trained model are stored on a Render persistent disk so they survive service restarts. Render provides HTTPS for the public service URL.
+
+1. Sign in to [Render](https://dashboard.render.com/) and choose **New → Blueprint**.
+2. Connect `jritika23comp-cpu/HOTELIQ` and select the branch to deploy. Render reads [`render.yaml`](./render.yaml); the web service and persistent disk require a paid Render plan.
+3. When prompted, set `DEFAULT_ADMIN_EMAIL` and a strong, unique `DEFAULT_ADMIN_PASSWORD`. Render generates `FLASK_SECRET_KEY` automatically. Do not use the demo password for deployment.
+4. Create the Blueprint and wait for the deploy and `/health` check to succeed.
+5. Open the `hoteliq` web service in Render and copy its generated `https://…onrender.com` URL. That is the live URL for the login page and all app pages; no separate frontend service or CORS URL is required. The generated URL is assigned by Render and cannot be known until the service is created.
+
+The Blueprint sets `DATABASE_PATH=/var/data/hoteliq.db`, `MODEL_DIR=/var/data/models`, and secure session cookies. The optional `OPENAI_API_KEY` is not required; insights use the local metrics.
+
+To verify after deployment, open `https://<your-render-service>.onrender.com/health` and confirm it returns `{"ok":true,"service":"HotelIQ"}`. Then sign in at the service root, open the dashboard, and confirm its dashboard API data loads.
+
+For a local production-style server, set `FLASK_SECRET_KEY`, `DEFAULT_ADMIN_EMAIL`, and `DEFAULT_ADMIN_PASSWORD` in the environment, then run:
 
 ```bash
-gunicorn -w 2 -b 0.0.0.0:8000 backend.app:app
+gunicorn -w 1 -b 0.0.0.0:8000 backend.app:app
 ```
 
-Do not commit `.env`. SQLite file is created at `data/hoteliq.db` at runtime.
+Do not commit `.env`. Local development defaults to `data/hoteliq.db`; the Render Blueprint uses persistent storage instead.

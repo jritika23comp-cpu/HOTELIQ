@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: hoteliq
+    runtime: python
+    plan: starter
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT backend.app:app
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: hoteliq-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: DEFAULT_ADMIN_EMAIL
+        sync: false
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: DEMO_MODE
+        value: "true"
+      - key: DATABASE_PATH
+        value: /var/data/hoteliq.db
+      - key: MODEL_DIR
+        value: /var/data/models
